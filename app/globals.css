@@ -1,26 +1,167 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-display: var(--font-grotesk);
+  --font-body: var(--font-inter);
+  --font-mono: var(--font-jbmono);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+@theme {
+  /* surfaces — deep space with a blue/violet undertone */
+  --color-ink: #0a0b12;
+  --color-panel: #12141f;
+  --color-panel2: #191d2e;
+  --color-line: #252b44;
+  /* text */
+  --color-fg: #e9eefc;
+  --color-mute: #8b94b5;
+  /* accents — electric cyan primary, violet reserved for one highlight */
+  --color-accent: #22d3ee;
+  --color-accent2: #a855f7;
+  /* positions (desaturated to sit inside the dark palette) */
+  --color-qb: #e26a85;
+  --color-rb: #43bd96;
+  --color-wr: #5c9ee0;
+  --color-te: #e0a263;
+  /* status */
+  --color-up: #3fcf8e;
+  --color-down: #f26d6d;
+
+  --animate-pick-pop: pick-pop 0.6s ease-out;
+  --animate-clock-pulse: clock-pulse 1.2s ease-in-out infinite;
+
+  @keyframes pick-pop {
+    0% {
+      transform: scale(0.85);
+      box-shadow: 0 0 0 2px #22d3ee, 0 0 24px 4px rgba(34, 211, 238, 0.45);
+    }
+    60% {
+      transform: scale(1.03);
+    }
+    100% {
+      transform: scale(1);
+      box-shadow: 0 0 0 0 transparent;
+    }
+  }
+  @keyframes clock-pulse {
+    0%,
+    100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.55;
+    }
   }
 }
 
+html {
+  background: var(--color-ink);
+}
+
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  /* faint command-center wash: cyan up top, violet low right — barely there */
+  background:
+    radial-gradient(60rem 32rem at 15% -8%, rgba(34, 211, 238, 0.055), transparent 60%),
+    radial-gradient(50rem 30rem at 100% 110%, rgba(168, 85, 247, 0.05), transparent 60%),
+    var(--color-ink);
+  background-attachment: fixed;
+  color: var(--color-fg);
+  font-family: var(--font-body), system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ---- HUD effect utilities ----------------------------------------------
+   Kept in the components layer so plain utilities (bg-*, border-*) can
+   override individual properties per element. */
+@layer components {
+.glass {
+  background: rgba(18, 20, 31, 0.62);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border: 1px solid rgba(148, 163, 214, 0.14);
+}
+
+/* corner brackets — frames a panel like a heads-up display */
+.hud-corners {
+  position: relative;
+}
+.hud-corners::before,
+.hud-corners::after {
+  content: "";
+  position: absolute;
+  width: 14px;
+  height: 14px;
+  pointer-events: none;
+  border-color: rgba(34, 211, 238, 0.55);
+}
+.hud-corners::before {
+  top: -1px;
+  left: -1px;
+  border-top: 1px solid;
+  border-left: 1px solid;
+  border-color: inherit;
+  border-top-color: rgba(34, 211, 238, 0.55);
+  border-left-color: rgba(34, 211, 238, 0.55);
+}
+.hud-corners::after {
+  bottom: -1px;
+  right: -1px;
+  border-bottom: 1px solid;
+  border-right: 1px solid;
+  border-bottom-color: rgba(34, 211, 238, 0.55);
+  border-right-color: rgba(34, 211, 238, 0.55);
+}
+
+/* soft accent glow — active states only */
+.glow-accent {
+  box-shadow:
+    0 0 2px rgba(34, 211, 238, 0.4),
+    0 0 16px rgba(34, 211, 238, 0.22);
+}
+.text-glow {
+  text-shadow: 0 0 14px rgba(34, 211, 238, 0.5);
+}
+
+/* faint pill glow driven by the pill's own text color */
+.pill-glow {
+  box-shadow: 0 0 9px -3px currentColor;
+}
+
+/* very subtle static scanlines for the draft board */
+.scanlines::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background: repeating-linear-gradient(
+    to bottom,
+    rgba(233, 238, 252, 0.025) 0px,
+    rgba(233, 238, 252, 0.025) 1px,
+    transparent 1px,
+    transparent 4px
+  );
+}
+}
+
+/* thin scrollbars for the dense lists */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: #2b3352 transparent;
+}
+*::-webkit-scrollbar {
+  height: 8px;
+  width: 8px;
+}
+*::-webkit-scrollbar-thumb {
+  background: #2b3352;
+  border-radius: 4px;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
 }

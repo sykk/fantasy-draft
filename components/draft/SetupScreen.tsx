@@ -1,0 +1,175 @@
+"use client";
+
+import { useEffect, useState } from "react";
+import { loadHistory, useDraft } from "@/lib/useDraft";
+import type { DraftSummary } from "@/lib/types";
+
+const TEAM_OPTIONS = [8, 10, 12, 14];
+const ROUND_OPTIONS = [12, 15, 18];
+const SCORING_OPTIONS = ["half-ppr", "ppr", "standard"] as const;
+
+export function SetupScreen() {
+  const start = useDraft((s) => s.start);
+  const [teams, setTeams] = useState(12);
+  const [slot, setSlot] = useState<number | "random">("random");
+  const [rounds, setRounds] = useState(15);
+  const [scoring, setScoring] = useState<(typeof SCORING_OPTIONS)[number]>("half-ppr");
+  const [strict, setStrict] = useState(false);
+  const [history, setHistory] = useState<DraftSummary[]>([]);
+
+  useEffect(() => setHistory(loadHistory()), []);
+
+  function handleStart() {
+    const chosenSlot =
+      slot === "random" ? 1 + Math.floor(Math.random() * teams) : Math.min(slot, teams);
+    start({ teams, slot: chosenSlot, rounds, scoring, timerSec: 30, strictRankings: strict });
+  }
+
+  return (
+    <div className="mx-auto max-w-xl space-y-6">
+      <header>
+        <h1 className="font-display text-4xl font-bold tracking-wide">MOCK DRAFT</h1>
+        <p className="mt-1 text-sm text-mute">
+          Practice a snake draft against AI teams that draft like real lobbies — your
+          board decides what you see first.
+        </p>
+      </header>
+
+      <section className="glass hud-corners space-y-4 rounded-xl p-4">
+        <Field label="Teams">
+          <div className="flex gap-1.5">
+            {TEAM_OPTIONS.map((n) => (
+              <Chip
+                key={n}
+                active={teams === n}
+                onClick={() => {
+                  setTeams(n);
+                  if (slot !== "random" && slot > n) setSlot(n);
+                }}
+              >
+                {n}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Your draft slot">
+          <div className="flex flex-wrap gap-1.5">
+            <Chip active={slot === "random"} onClick={() => setSlot("random")}>
+              Random
+            </Chip>
+            {Array.from({ length: teams }, (_, i) => i + 1).map((n) => (
+              <Chip key={n} active={slot === n} onClick={() => setSlot(n)}>
+                {n}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="Roster size (rounds)">
+          <div className="flex gap-1.5">
+            {ROUND_OPTIONS.map((n) => (
+              <Chip key={n} active={rounds === n} onClick={() => setRounds(n)}>
+                {n}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+
+        <Field label="AI drafting">
+          <div className="flex flex-wrap gap-1.5">
+            <Chip active={!strict} onClick={() => setStrict(false)}>
+              Realistic
+            </Chip>
+            <Chip active={strict} onClick={() => setStrict(true)}>
+              Strict rankings
+            </Chip>
+          </div>
+          <p className="mt-1.5 text-xs text-mute">
+            {strict
+              ? "Every AI pick is the top available player on your rankings board — fully predictable, no randomness."
+              : "AI teams draft near ADP with some variance and roster needs, like a real lobby."}
+          </p>
+        </Field>
+
+        <Field label="Scoring">
+          <div className="flex gap-1.5">
+            {SCORING_OPTIONS.map((s) => (
+              <Chip key={s} active={scoring === s} onClick={() => setScoring(s)}>
+                {s === "half-ppr" ? "Half PPR" : s === "ppr" ? "PPR" : "Standard"}
+              </Chip>
+            ))}
+          </div>
+        </Field>
+
+        <button
+          type="button"
+          onClick={handleStart}
+          className="w-full rounded-lg bg-gradient-to-r from-accent to-accent2 py-3 font-display text-xl font-bold uppercase tracking-widest text-ink transition-all duration-200 hover:shadow-[0_0_24px_-6px_rgba(34,211,238,0.6)] hover:brightness-110 active:scale-[0.98]"
+        >
+          START DRAFT
+        </button>
+      </section>
+
+      {history.length > 0 && (
+        <section>
+          <h2 className="mb-2 font-display text-lg font-semibold tracking-wide text-mute">
+            RECENT DRAFTS
+          </h2>
+          <ul className="space-y-1.5">
+            {history.slice(0, 5).map((h) => (
+              <li
+                key={h.finishedAt}
+                className="flex items-center justify-between rounded-lg border border-line bg-panel px-3 py-2 text-sm"
+              >
+                <span className="text-mute">
+                  {new Date(h.finishedAt).toLocaleDateString()} · {h.teams} teams · slot{" "}
+                  {h.slot}
+                </span>
+                <span className="flex items-center gap-3">
+                  <span className="font-mono text-xs tabular-nums text-mute">
+                    {Math.round(h.projPoints)} pts
+                  </span>
+                  <span className="font-mono text-lg font-bold text-accent">{h.grade}</span>
+                </span>
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
+    </div>
+  );
+}
+
+function Field({ label, children }: { label: string; children: React.ReactNode }) {
+  return (
+    <div>
+      <div className="mb-1.5 text-xs font-semibold uppercase tracking-widest text-mute">
+        {label}
+      </div>
+      {children}
+    </div>
+  );
+}
+
+function Chip({
+  active,
+  onClick,
+  children,
+}: {
+  active: boolean;
+  onClick: () => void;
+  children: React.ReactNode;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={`min-w-10 rounded-full px-3 py-1.5 font-display text-sm font-semibold transition-all duration-200 ${
+        active ? "bg-accent text-ink glow-accent" : "bg-panel2 text-mute hover:text-fg"
+      }`}
+    >
+      {children}
+    </button>
+  );
+}
