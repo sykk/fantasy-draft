@@ -212,17 +212,14 @@ export function loadHistory(): DraftSummary[] {
 }
 
 function saveHistory(picks: DraftPick[], config: DraftConfig) {
-  const user = config.slot - 1;
-  const proj = picks
-    .filter((p) => p.team === user)
-    .reduce((sum, p) => sum + (PLAYER_BY_ID.get(p.playerId)?.projPoints ?? 0), 0);
+  const grade = gradeFor(picks, config);
   const entry: DraftSummary = {
     finishedAt: Date.now(),
     teams: config.teams,
     slot: config.slot,
     rounds: config.rounds,
-    projPoints: proj,
-    grade: gradeFor(picks, config).grade,
+    projPoints: grade.totalProj,
+    grade: grade.grade,
   };
   try {
     localStorage.setItem(
