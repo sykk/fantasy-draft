@@ -18,10 +18,14 @@ import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { rankMap, sanitizeOrder, useRankings } from "@/lib/useRankings";
-import type { Player, PlayerTag } from "@/lib/types";
+import type { Player, PlayerTag, Position } from "@/lib/types";
 import { PlayerTile } from "@/components/PlayerTile";
 import { FilterBar, type PosFilter } from "@/components/FilterBar";
 import { PlayerDetailCard } from "@/components/PlayerDetailCard";
+import { RankingsTable } from "@/components/RankingsTable";
+import { POS_BORDER } from "@/components/ui";
+
+type View = "cards" | "table";
 
 export function RankingsBoard() {
   const [mounted, setMounted] = useState(false);
@@ -32,6 +36,7 @@ export function RankingsBoard() {
   const move = useRankings((s) => s.move);
   const resetToAdp = useRankings((s) => s.resetToAdp);
 
+  const [view, setView] = useState<View>("cards");
   const [filter, setFilter] = useState<PosFilter>("ALL");
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -51,9 +56,27 @@ export function RankingsBoard() {
       .filter((p) => !q || p.name.toLowerCase().includes(q) || p.team.toLowerCase().includes(q));
   }, [order, filter, query]);
 
+  // Tiers are position-scoped, so grouping only makes sense when a single
+  // position is in view. Groups consecutive same-tier players so the
+  // stripe/header always spans a contiguous, honest block.
+  const tierGroups = useMemo(() => {
+    if (filter === "ALL") return null;
+    const groups: { tier: number; players: Player[] }[] = [];
+    for (const p of visible) {
+      const last = groups[groups.length - 1];
+      if (last && last.tier === p.tier) last.players.push(p);
+      else groups.push({ tier: p.tier, players: [p] });
+    }
+    return groups;
+  }, [visible, filter]);
+
   function handleDragEnd(e: DragEndEvent) {
     const { active, over } = e;
     if (over && active.id !== over.id) move(String(active.id), String(over.id));
+  }
+
+  function toggleExpanded(id: string) {
+    setExpandedId((cur) => (cur === id ? null : id));
   }
 
   if (!mounted) {
@@ -66,27 +89,50 @@ export function RankingsBoard() {
     );
   }
 
-  const seenTiers = new Set<number>();
-
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <FilterBar filter={filter} onFilter={setFilter} query={query} onQuery={setQuery} />
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("Reset your board back to default ADP order?")) resetToAdp();
-          }}
-          className="rounded-full border border-line px-3 py-1.5 text-sm text-mute transition-colors hover:border-down hover:text-down"
-        >
-          Reset to ADP
-        </button>
+        <div className="flex items-center gap-2">
+          <div className="flex gap-1">
+            {(["cards", "table"] as View[]).map((v) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => setView(v)}
+                className={`rounded-full px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-widest transition-all duration-200 ${
+                  view === v
+                    ? "bg-accent text-ink glow-accent"
+                    : "bg-panel text-mute hover:bg-panel2"
+                }`}
+              >
+                {v}
+              </button>
+            ))}
+          </div>
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Reset your board back to default ADP order?")) resetToAdp();
+            }}
+            className="rounded-full border border-line px-3 py-1.5 text-sm text-mute transition-colors hover:border-down hover:text-down"
+          >
+            Reset to ADP
+          </button>
+        </div>
       </div>
 
       {visible.length === 0 ? (
         <p className="rounded-lg border border-line bg-panel px-4 py-8 text-center text-sm text-mute">
           No players match. Clear the search or pick another position.
         </p>
+      ) : view === "table" ? (
+        <RankingsTable
+          players={visible}
+          ranks={ranks}
+          expandedId={expandedId}
+          onToggle={toggleExpanded}
+        />
       ) : (
         <DndContext
           sensors={sensors}
@@ -98,35 +144,50 @@ export function RankingsBoard() {
             items={visible.map((p) => p.id)}
             strategy={verticalListSortingStrategy}
           >
-            <ul className="space-y-1.5">
-              {visible.map((p) => {
-                // Tiers are position-scoped, so breaks only make sense
-                // when a single position is in view.
-                const firstOfTier = filter !== "ALL" && !seenTiers.has(p.tier);
-                seenTiers.add(p.tier);
-                return (
-                  <li key={p.id} className="space-y-1.5">
-                    {firstOfTier && (
-                      <div className="flex items-center gap-2 pt-1">
-                        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em] text-accent/80">
-                          {filter} · TIER {String(p.tier).padStart(2, "0")}
-                        </span>
-                        <span className="h-px flex-1 bg-gradient-to-r from-accent/40 via-line to-transparent" />
-                      </div>
-                    )}
+            {tierGroups ? (
+              <div className="space-y-4">
+                {tierGroups.map((group, i) => (
+                  <div
+                    key={`${group.tier}-${i}`}
+                    className={`space-y-1.5 border-l-2 pl-3 ${POS_BORDER[filter as Position]}`}
+                  >
+                    <div className="flex items-center gap-2 pt-1">
+                      <span className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-accent/80">
+                        {filter} · TIER {String(group.tier).padStart(2, "0")}
+                      </span>
+                      <span className="h-px flex-1 bg-gradient-to-r from-accent/40 via-line to-transparent" />
+                    </div>
+                    <ul className="space-y-1.5">
+                      {group.players.map((p) => (
+                        <li key={p.id}>
+                          <SortableRow
+                            player={p}
+                            rank={ranks.get(p.id) ?? p.adp}
+                            tags={tags[p.id] ?? []}
+                            expanded={expandedId === p.id}
+                            onToggle={() => toggleExpanded(p.id)}
+                          />
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <ul className="space-y-1.5">
+                {visible.map((p) => (
+                  <li key={p.id}>
                     <SortableRow
                       player={p}
                       rank={ranks.get(p.id) ?? p.adp}
                       tags={tags[p.id] ?? []}
                       expanded={expandedId === p.id}
-                      onToggle={() =>
-                        setExpandedId(expandedId === p.id ? null : p.id)
-                      }
+                      onToggle={() => toggleExpanded(p.id)}
                     />
                   </li>
-                );
-              })}
-            </ul>
+                ))}
+              </ul>
+            )}
           </SortableContext>
         </DndContext>
       )}
