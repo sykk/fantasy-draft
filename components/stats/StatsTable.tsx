@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
-import { STATS, STATS_SEASON } from "@/lib/stats";
+import { SEASONS, STATS_BY_SEASON } from "@/lib/stats";
 import type { PlayerStats, Position } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
 import { POS_TEXT, PositionBadge } from "@/components/ui";
@@ -25,8 +25,8 @@ const pct = (v: number) => `${v.toFixed(1)}%`;
 
 const GAMES: Col = { key: "g", label: "G", get: (p) => p.gamesPlayed };
 const TAIL: Col[] = [
-  { key: "ppg", label: "PPG", get: (p) => p.pointsPerGame, fmt: (p) => dec(p.pointsPerGame), mobile: true },
-  { key: "fpts", label: "FPTS", get: (p) => p.fantasyPointsHalf, fmt: (p) => dec(p.fantasyPointsHalf), mobile: true },
+  { key: "ppg", label: "PPG", get: (p) => p.pointsPerGamePPR, fmt: (p) => dec(p.pointsPerGamePPR), mobile: true },
+  { key: "fpts", label: "FPTS", get: (p) => p.fantasyPointsPPR, fmt: (p) => dec(p.fantasyPointsPPR), mobile: true },
 ];
 
 const COLUMNS: Record<PosFilter, Col[]> = {
@@ -89,16 +89,18 @@ const COLUMNS: Record<PosFilter, Col[]> = {
 };
 COLUMNS.TE = COLUMNS.WR;
 
-const ALL_TEAMS = [...new Set(STATS.map((p) => p.team))].sort();
+const ALL_TEAMS = [...new Set(Object.values(STATS_BY_SEASON).flat().map((p) => p.team))].sort();
 
 export function StatsTable() {
   const router = useRouter();
+  const [season, setSeason] = useState<number>(SEASONS[SEASONS.length - 1]);
   const [pos, setPos] = useState<PosFilter>("ALL");
   const [query, setQuery] = useState("");
   const [team, setTeam] = useState("ALL");
   const [sortKey, setSortKey] = useState("fpts");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
 
+  const seasonStats = STATS_BY_SEASON[season];
   const cols = COLUMNS[pos];
   const activeCol = cols.find((c) => c.key === sortKey);
 
@@ -123,18 +125,32 @@ export function StatsTable() {
   const rows = useMemo(() => {
     const q = query.trim().toLowerCase();
     const col = COLUMNS[pos].find((c) => c.key === sortKey) ?? TAIL[1];
-    const filtered = STATS.filter(
+    const filtered = seasonStats.filter(
       (p) =>
         (pos === "ALL" || p.position === pos) &&
         (team === "ALL" || p.team === team) &&
         (!q || p.name.toLowerCase().includes(q))
     );
     return filtered.sort((a, b) => (sortDir === "desc" ? col.get(b) - col.get(a) : col.get(a) - col.get(b)));
-  }, [pos, query, team, sortKey, sortDir]);
+  }, [seasonStats, pos, query, team, sortKey, sortDir]);
 
   return (
     <div className="space-y-3">
       <div className="flex flex-wrap items-center gap-2">
+        <div className="flex gap-1">
+          {SEASONS.map((s) => (
+            <button
+              key={s}
+              type="button"
+              onClick={() => setSeason(s)}
+              className={`rounded-full px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-widest transition-all duration-200 ${
+                season === s ? "bg-accent text-ink glow-accent" : "bg-panel text-mute hover:bg-panel2"
+              }`}
+            >
+              {s}
+            </button>
+          ))}
+        </div>
         <div className="flex gap-1">
           {(["ALL", ...POSITIONS] as PosFilter[]).map((p) => (
             <button
@@ -171,9 +187,6 @@ export function StatsTable() {
             </option>
           ))}
         </select>
-        <span className="font-mono text-[10px] font-semibold uppercase tracking-[0.25em] text-accent/80">
-          {STATS_SEASON} season
-        </span>
       </div>
 
       <div className="glass max-h-[calc(100vh-15rem)] overflow-auto rounded-xl">
@@ -205,7 +218,7 @@ export function StatsTable() {
             {rows.map((p, i) => (
               <tr
                 key={p.id}
-                onClick={() => router.push(`/stats/${p.id}`)}
+                onClick={() => router.push(`/stats/${p.id}?season=${season}`)}
                 className="group cursor-pointer border-b border-line/50 transition-colors last:border-b-0 hover:bg-panel2"
               >
                 <td className="sticky left-0 z-10 bg-panel px-3 py-2 group-hover:bg-panel2">
