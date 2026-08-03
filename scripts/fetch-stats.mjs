@@ -57,6 +57,14 @@ function buildRecords(season, players, stats) {
   let droppedNoTeam = 0;
   const records = [];
 
+  // Sleeper's player-metadata endpoint only returns CURRENT values for age/exp/injury —
+  // there's no historical snapshot per season. Back-adjust age/yearsExp for how many
+  // years before the most recent season this one is; injuryStatus only makes sense for
+  // the current/most-recent season, so it's nulled out for prior seasons.
+  const mostRecentSeason = SEASONS[SEASONS.length - 1];
+  const yearsAgo = mostRecentSeason - season;
+  const isMostRecentSeason = yearsAgo === 0;
+
   for (const [id, meta] of Object.entries(players)) {
     if (!meta || !FANTASY_POSITIONS.has(meta.position)) continue;
     const s = stats[id];
@@ -86,18 +94,24 @@ function buildRecords(season, players, stats) {
     const rushYds = num(s.rush_yd);
     const recYds = num(s.rec_yd);
 
+    const currentAge = numOrNull(meta.age);
+    const currentYearsExp = numOrNull(meta.years_exp);
+
     records.push({
       id,
       name: `${meta.first_name ?? ""} ${meta.last_name ?? ""}`.trim(),
       position: meta.position,
+      // team/height/weight reflect the player's CURRENT roster info from Sleeper's
+      // player-metadata endpoint, not their team at the time of the historical season —
+      // correcting this would require per-week season endpoints, out of scope for now.
       team,
-      age: numOrNull(meta.age),
-      yearsExp: numOrNull(meta.years_exp),
+      age: currentAge != null ? Math.max(currentAge - yearsAgo, 0) : null,
+      yearsExp: currentYearsExp != null ? Math.max(currentYearsExp - yearsAgo, 0) : null,
       height: formatHeight(meta.height),
       weight: numOrNull(meta.weight),
       college: meta.college || null,
       jerseyNumber: numOrNull(meta.number),
-      injuryStatus: meta.injury_status || null,
+      injuryStatus: isMostRecentSeason ? meta.injury_status || null : null,
 
       season,
       gamesPlayed: gp,

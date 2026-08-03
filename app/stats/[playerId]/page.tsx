@@ -5,11 +5,15 @@ import { latestRecordForId, POS_RANK_BY_SEASON, SEASONS, STATS_BY_ID_BY_SEASON }
 import type { PlayerStats } from "@/lib/types";
 import { POS_TEXT, PositionBadge } from "@/components/ui";
 
+// Fallback only for the (practically unreachable) case where identity has no
+// season signal — latestRecordForId only ever returns records sourced from
+// STATS_BY_SEASON, so identity.season should always be a valid entry.
 const DEFAULT_SEASON = SEASONS[SEASONS.length - 1];
 
-function parseSeason(raw: string | undefined): number {
+/** No-param default is the season the player last has data for, not a global constant. */
+function resolveSeason(raw: string | undefined, fallbackSeason: number): number {
   const n = Number(raw);
-  return SEASONS.includes(n) ? n : DEFAULT_SEASON;
+  return SEASONS.includes(n) ? n : fallbackSeason;
 }
 
 type PageProps = {
@@ -20,18 +24,20 @@ type PageProps = {
 export async function generateMetadata({ params, searchParams }: PageProps): Promise<Metadata> {
   const { playerId } = await params;
   const { season: seasonParam } = await searchParams;
-  const season = parseSeason(seasonParam);
-  const player = STATS_BY_ID_BY_SEASON[season].get(playerId) ?? latestRecordForId(playerId);
+  const identity = latestRecordForId(playerId);
+  const season = resolveSeason(seasonParam, identity?.season ?? DEFAULT_SEASON);
+  const player = STATS_BY_ID_BY_SEASON[season].get(playerId) ?? identity;
   return { title: player ? `${player.name} — Stats` : "Player Stats" };
 }
 
 export default async function PlayerStatsPage({ params, searchParams }: PageProps) {
   const { playerId } = await params;
   const { season: seasonParam } = await searchParams;
-  const season = parseSeason(seasonParam);
 
   const identity = latestRecordForId(playerId);
   if (!identity) notFound();
+
+  const season = resolveSeason(seasonParam, identity.season);
 
   const player = STATS_BY_ID_BY_SEASON[season].get(playerId);
   const posRank = player ? POS_RANK_BY_SEASON[season].get(player.id) : undefined;
