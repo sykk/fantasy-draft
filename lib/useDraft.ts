@@ -4,6 +4,7 @@ import { create } from "zustand";
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { aiSelect } from "@/lib/ai";
 import { sanitizeOrder, useRankings } from "@/lib/useRankings";
+import { POSITIONS } from "@/lib/types";
 import type { DraftConfig, DraftPick, DraftSummary, Player, Position } from "@/lib/types";
 
 export type DraftPhase = "setup" | "drafting" | "complete";
@@ -245,23 +246,25 @@ export interface DraftGrade {
 }
 
 export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
-  const totals = new Array(config.teams).fill(0);
+  const teamPlayers: Player[][] = Array.from({ length: config.teams }, () => []);
   for (const pk of picks) {
-    totals[pk.team] += PLAYER_BY_ID.get(pk.playerId)?.projPoints ?? 0;
+    const player = PLAYER_BY_ID.get(pk.playerId);
+    if (player) teamPlayers[pk.team].push(player);
   }
+  const totals = teamPlayers.map((players) => startingLineupPoints(players));
+
   const user = config.slot - 1;
   const totalProj = totals[user];
   const projRank = totals.filter((t) => t > totalProj).length + 1;
+  const userPlayers = teamPlayers[user];
 
   let bestValue: DraftGrade["bestValue"] = null;
   let biggestReach: DraftGrade["biggestReach"] = null;
   const positionCounts: Record<Position, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
-  const userPlayers: Player[] = [];
   for (const pk of picks) {
     if (pk.team !== user) continue;
     const player = PLAYER_BY_ID.get(pk.playerId);
     if (!player) continue;
-    userPlayers.push(player);
     positionCounts[player.position] += 1;
     const diff = pk.overall + 1 - player.adp; // + = value, - = reach
     if (diff > 0 && (!bestValue || diff > bestValue.diff)) bestValue = { player, diff };
@@ -283,6 +286,31 @@ export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
     byeConflict: findByeConflict(userPlayers),
     stack: findStack(userPlayers),
   };
+}
+
+/**
+ * Sum of projPoints for the best starting lineup among these players:
+ * 1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX (best remaining RB/WR/TE). A missing
+ * position just contributes 0 for that slot — never throws.
+ */
+function startingLineupPoints(players: Player[]): number {
+  const byPos: Record<Position, Player[]> = { QB: [], RB: [], WR: [], TE: [] };
+  for (const p of players) byPos[p.position].push(p);
+  for (const pos of POSITIONS) byPos[pos].sort((a, b) => b.projPoints - a.projPoints);
+
+  const starters: Player[] = [
+    ...byPos.QB.slice(0, 1),
+    ...byPos.RB.slice(0, 2),
+    ...byPos.WR.slice(0, 2),
+    ...byPos.TE.slice(0, 1),
+  ];
+
+  const flexPool = [...byPos.RB.slice(2), ...byPos.WR.slice(2), ...byPos.TE.slice(1)].sort(
+    (a, b) => b.projPoints - a.projPoints
+  );
+  starters.push(...flexPool.slice(0, 1));
+
+  return starters.reduce((sum, p) => sum + p.projPoints, 0);
 }
 
 /** Worst bye-week collision in the roster (3+ players sharing a week), or null. Ties go to the lower week number. */
