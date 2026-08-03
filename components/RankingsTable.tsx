@@ -14,7 +14,7 @@ interface Col {
 }
 
 const COLUMNS: Col[] = [
-  { key: "bye", label: "BYE", value: (p) => p.byeWeek, render: (p) => (p.byeWeek || "—") },
+  { key: "bye", label: "BYE", value: (p) => p.byeWeek || 99, render: (p) => (p.byeWeek || "—") },
   { key: "proj", label: "PROJ", value: (p) => p.projPoints },
   { key: "adp", label: "ADP", value: (p) => p.adp },
   {
@@ -60,7 +60,7 @@ export function RankingsTable({
     });
   }, [players, ranks, sortKey, sortDir]);
 
-  const colSpan = 2 + COLUMNS.length;
+  const colSpan = 1 + COLUMNS.length;
 
   return (
     <div className="glass max-h-[calc(100vh-15rem)] overflow-auto rounded-xl">
@@ -68,9 +68,6 @@ export function RankingsTable({
         <thead>
           <tr>
             <th className="sticky top-0 left-0 z-30 border-b border-line bg-[#12141f] px-3 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-widest text-mute">
-              Rank
-            </th>
-            <th className="sticky top-0 z-20 border-b border-line bg-[#12141f] px-3 py-2 text-left font-mono text-[10px] font-semibold uppercase tracking-widest text-mute">
               Player
             </th>
             {COLUMNS.map((c) => {
@@ -101,11 +98,11 @@ export function RankingsTable({
                   onClick={() => onToggle(p.id)}
                   className="group cursor-pointer border-b border-line/50 transition-colors last:border-b-0 hover:bg-panel2"
                 >
-                  <td className="sticky left-0 z-10 bg-panel px-3 py-2 text-right font-mono text-sm font-bold text-accent tabular-nums group-hover:bg-panel2">
-                    {rank}
-                  </td>
-                  <td className="bg-panel px-3 py-2 group-hover:bg-panel2">
+                  <td className="sticky left-0 z-10 bg-panel px-3 py-2 group-hover:bg-panel2">
                     <div className="flex items-center gap-2">
+                      <span className="font-mono text-sm font-bold text-accent tabular-nums">
+                        {rank}
+                      </span>
                       <span className="max-w-40 truncate text-sm font-semibold sm:max-w-none">
                         {p.name}
                       </span>
