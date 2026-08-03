@@ -54,6 +54,7 @@ export interface PlayerStats {
   fantasyPointsPPR: number;
   fantasyPointsHalf: number;
   pointsPerGame: number; // half-PPR / gamesPlayed
+  pointsPerGamePPR: number; // full PPR / gamesPlayed
 
   passYards: number;
   passTD: number;
