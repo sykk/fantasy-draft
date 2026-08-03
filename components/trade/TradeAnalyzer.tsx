@@ -41,7 +41,7 @@ export function TradeAnalyzer() {
 
       <div className="grid gap-4 sm:grid-cols-2">
         <TradeSide
-          label="Side A"
+          label="Side A Sends"
           summary={result.sideA}
           exclude={excludeAll}
           onAdd={(id) => addTo("A", id)}
@@ -49,7 +49,7 @@ export function TradeAnalyzer() {
           onClear={() => setSideA([])}
         />
         <TradeSide
-          label="Side B"
+          label="Side B Sends"
           summary={result.sideB}
           exclude={excludeAll}
           onAdd={(id) => addTo("B", id)}

@@ -8,6 +8,7 @@ Fantasy football draft prep app — build a big board, tier players, study real 
 - **Tier List** — S–F tier board with drag-and-drop
 - **Stats** — real NFL regular-season stats (via Sleeper API) with a sortable/filterable table and per-player detail pages
 - **Mock Draft** — snake draft vs. AI with pick timer, pause/exit, and an optional strict-rankings mode (AI drafts your board exactly, no randomness)
+- **Trade Analyzer** — build both sides of a hypothetical trade and compare projected points, with a fairness verdict
 
 ## Getting started
 

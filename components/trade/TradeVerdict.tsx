@@ -14,7 +14,7 @@ export function TradeVerdict({ result }: { result: TradeResult }) {
   const isFair = edgePct < 0.05;
   const verdictText = isFair
     ? "Fair trade"
-    : `+${Math.abs(diff).toFixed(1)} pts to Side ${winner} (${(edgePct * 100).toFixed(0)}% edge)`;
+    : `Side ${winner} comes out ahead by ${Math.abs(diff).toFixed(1)} pts (${(edgePct * 100).toFixed(0)}% edge)`;
 
   return (
     <div className="glass space-y-3 rounded-xl p-4 text-center">
