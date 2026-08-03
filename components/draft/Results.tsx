@@ -79,6 +79,29 @@ export function Results() {
             ))}
           </div>
         </div>
+        <SummaryCard
+          label="Bye conflict"
+          empty="No bye conflicts"
+          entry={
+            grade.byeConflict && {
+              player: grade.byeConflict.players[0],
+              detail: `${grade.byeConflict.count} players — Bye ${grade.byeConflict.week}`,
+            }
+          }
+        />
+        <SummaryCard
+          label="Stack"
+          empty="No stacks"
+          entry={
+            grade.stack && {
+              player: grade.stack.qb,
+              detail:
+                grade.stack.mates.length > 1
+                  ? `${grade.stack.mates[0].name} +${grade.stack.mates.length - 1} more — ${grade.stack.team}`
+                  : `${grade.stack.mates[0].name} — ${grade.stack.team}`,
+            }
+          }
+        />
       </section>
 
       <section className="space-y-4">

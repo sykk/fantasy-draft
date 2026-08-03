@@ -56,8 +56,10 @@ export interface DraftGrade {
 - Group the user's drafted players by `team`.
 - For each team with both a QB and at least one WR/TE, that's a candidate
   stack.
-- Pick the candidate with the most pass-catchers (most "stacked"). Tie-break
-  by whichever team's QB was drafted earliest (lower overall pick number).
+- Pick the candidate with the most pass-catchers (most "stacked"). Ties
+  broken by whichever team appears first among the user's picks, in draft
+  order (i.e., the team whose first drafted player — QB or otherwise — came
+  earliest).
 - If no team has both a QB and a WR/TE, `stack` is `null`.
 
 ### UI (`components/draft/Results.tsx`)
