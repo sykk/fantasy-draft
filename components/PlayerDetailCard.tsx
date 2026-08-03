@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { useRankings } from "@/lib/useRankings";
-import { POS_RANK, STATS_SEASON, statsForAppPlayer } from "@/lib/stats";
+import { POS_RANK_BY_SEASON, statsForAppPlayer } from "@/lib/stats";
 import type { Player } from "@/lib/types";
 import { ALL_TAGS } from "@/lib/types";
 import { TagPill } from "@/components/ui";
@@ -19,15 +19,15 @@ export function PlayerDetailCard({ player }: { player: Player }) {
     <div className="space-y-3 px-3 py-3" onClick={(e) => e.stopPropagation()}>
       {lastSeason && (
         <Link
-          href={`/stats/${lastSeason.id}`}
+          href={`/stats/${lastSeason.id}?season=${lastSeason.season}`}
           className="flex items-center justify-between rounded-md border border-line bg-ink/50 px-3 py-2 transition-colors hover:border-accent/40"
         >
           <span className="font-mono text-[11px] text-mute tabular-nums">
-            {STATS_SEASON}: {lastSeason.fantasyPointsHalf.toFixed(1)} pts ·{" "}
-            {lastSeason.pointsPerGame.toFixed(1)} ppg ·{" "}
+            {lastSeason.season}: {lastSeason.fantasyPointsPPR.toFixed(1)} pts ·{" "}
+            {lastSeason.pointsPerGamePPR.toFixed(1)} ppg ·{" "}
             <span className="text-fg">
               {lastSeason.position}
-              {POS_RANK.get(lastSeason.id)}
+              {POS_RANK_BY_SEASON[lastSeason.season].get(lastSeason.id)}
             </span>
           </span>
           <span className="font-mono text-[11px] font-semibold uppercase tracking-wider text-accent">
