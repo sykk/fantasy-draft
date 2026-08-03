@@ -321,6 +321,7 @@ function findStack(players: Player[]): DraftGrade["stack"] {
   }
   let best: DraftGrade["stack"] = null;
   for (const [team, group] of byTeam) {
+    if (team === "FA") continue;
     const qb = group.find((p) => p.position === "QB");
     if (!qb) continue;
     const mates = group.filter((p) => p.position === "WR" || p.position === "TE");
