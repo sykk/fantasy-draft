@@ -32,20 +32,21 @@ export function PlayerTile({
       className={`rounded-lg border border-line bg-panel transition-all duration-200 ease-out ${
         drafted
           ? "opacity-40 grayscale"
-          : "hover:-translate-y-px hover:border-accent/40 hover:bg-panel2 hover:shadow-[0_0_18px_-8px_rgba(34,211,238,0.55)]"
+          : "hover:-translate-y-0.5 hover:border-accent/40 hover:bg-panel2 hover:shadow-[0_4px_20px_-6px_rgba(34,211,238,0.45)]"
       }`}
     >
       <div
-        className={`flex min-h-12 items-center gap-2 px-2 py-1.5 ${onClick ? "cursor-pointer" : ""}`}
+        className={`flex min-h-12 items-center gap-2.5 px-2 py-1.5 ${onClick ? "cursor-pointer" : ""}`}
         onClick={onClick}
         role={onClick ? "button" : undefined}
       >
-        <span className="w-8 shrink-0 text-center font-mono text-base font-semibold text-accent tabular-nums">
+        <span className="flex h-7 w-7 shrink-0 items-center justify-center rounded-md bg-panel2/80 font-mono text-sm font-bold text-accent tabular-nums">
           {rank}
         </span>
         <div className="min-w-0 flex-1">
-          <div className="flex items-center gap-2">
+          <div className="flex flex-wrap items-center gap-1.5">
             <span className="truncate text-sm font-semibold">{player.name}</span>
+            <PositionBadge position={player.position} team={player.team} />
             <DeltaBadge delta={delta} />
             {tags.map((t) => (
               <span key={t} className="hidden sm:inline-flex">
@@ -54,7 +55,6 @@ export function PlayerTile({
             ))}
           </div>
           <div className="mt-0.5 flex flex-wrap items-center gap-x-2 gap-y-0.5 text-xs text-mute">
-            <PositionBadge position={player.position} team={player.team} />
             <span className="font-mono text-[11px] whitespace-nowrap tabular-nums">
               Bye {player.byeWeek || "—"}
             </span>
