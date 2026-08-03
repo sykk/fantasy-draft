@@ -240,6 +240,8 @@ export interface DraftGrade {
   bestValue: { player: Player; diff: number } | null; // taken after ADP
   biggestReach: { player: Player; diff: number } | null; // taken before ADP
   positionCounts: Record<Position, number>;
+  byeConflict: { week: number; count: number; players: Player[] } | null;
+  stack: { team: string; qb: Player; mates: Player[] } | null;
 }
 
 export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
@@ -254,10 +256,12 @@ export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
   let bestValue: DraftGrade["bestValue"] = null;
   let biggestReach: DraftGrade["biggestReach"] = null;
   const positionCounts: Record<Position, number> = { QB: 0, RB: 0, WR: 0, TE: 0 };
+  const userPlayers: Player[] = [];
   for (const pk of picks) {
     if (pk.team !== user) continue;
     const player = PLAYER_BY_ID.get(pk.playerId);
     if (!player) continue;
+    userPlayers.push(player);
     positionCounts[player.position] += 1;
     const diff = pk.overall + 1 - player.adp; // + = value, - = reach
     if (diff > 0 && (!bestValue || diff > bestValue.diff)) bestValue = { player, diff };
@@ -268,5 +272,62 @@ export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
   const pct = (config.teams - projRank) / (config.teams - 1 || 1);
   const grade =
     pct >= 0.85 ? "A" : pct >= 0.65 ? "B+" : pct >= 0.45 ? "B" : pct >= 0.25 ? "C+" : "C";
-  return { grade, totalProj, projRank, bestValue, biggestReach, positionCounts };
+
+  return {
+    grade,
+    totalProj,
+    projRank,
+    bestValue,
+    biggestReach,
+    positionCounts,
+    byeConflict: findByeConflict(userPlayers),
+    stack: findStack(userPlayers),
+  };
+}
+
+/** Worst bye-week collision in the roster (3+ players sharing a week), or null. Ties go to the lower week number. */
+function findByeConflict(players: Player[]): DraftGrade["byeConflict"] {
+  const byWeek = new Map<number, Player[]>();
+  for (const player of players) {
+    if (!player.byeWeek) continue;
+    const group = byWeek.get(player.byeWeek) ?? [];
+    group.push(player);
+    byWeek.set(player.byeWeek, group);
+  }
+  let worst: DraftGrade["byeConflict"] = null;
+  for (const [week, group] of byWeek) {
+    if (group.length < 3) continue;
+    if (
+      !worst ||
+      group.length > worst.count ||
+      (group.length === worst.count && week < worst.week)
+    ) {
+      worst = { week, count: group.length, players: group };
+    }
+  }
+  return worst;
+}
+
+/**
+ * Biggest same-team QB + WR/TE stack in the roster, or null. Ties go to
+ * whichever team appears first among the user's picks (draft order).
+ */
+function findStack(players: Player[]): DraftGrade["stack"] {
+  const byTeam = new Map<string, Player[]>();
+  for (const player of players) {
+    const group = byTeam.get(player.team) ?? [];
+    group.push(player);
+    byTeam.set(player.team, group);
+  }
+  let best: DraftGrade["stack"] = null;
+  for (const [team, group] of byTeam) {
+    const qb = group.find((p) => p.position === "QB");
+    if (!qb) continue;
+    const mates = group.filter((p) => p.position === "WR" || p.position === "TE");
+    if (mates.length === 0) continue;
+    if (!best || mates.length > best.mates.length) {
+      best = { team, qb, mates };
+    }
+  }
+  return best;
 }
