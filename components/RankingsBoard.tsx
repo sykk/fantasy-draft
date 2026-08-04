@@ -211,7 +211,7 @@ function SortableRow({
         isDragging ? "relative z-10 opacity-90" : ""
       }`}
     >
-      <PlayerRankRow player={player} rank={rank} />
+      <PlayerRankRow player={player} rank={rank} delta={player.adp - rank} />
     </div>
   );
 }
