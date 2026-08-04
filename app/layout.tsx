@@ -3,6 +3,7 @@ import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
 import Link from "next/link";
 import "./globals.css";
 import { NavLinks } from "@/components/NavLinks";
+import { IdentitySwitcher } from "@/components/IdentitySwitcher";
 
 const grotesk = Space_Grotesk({
   variable: "--font-grotesk",
@@ -51,6 +52,7 @@ export default function RootLayout({
               DRAFT<span className="text-fg">LAB</span>
             </Link>
             <NavLinks />
+            <IdentitySwitcher />
           </div>
         </header>
         <main className="mx-auto w-full max-w-6xl flex-1 px-4 pb-24 pt-4">{children}</main>
