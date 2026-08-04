@@ -25,7 +25,7 @@ export function DraftBoardGrid() {
             key={t}
             className={`px-1 py-1.5 text-center font-mono text-[10px] font-bold uppercase tracking-widest ${
               t === user
-                ? "text-glow sticky left-[2rem] z-10 bg-accent/10 text-accent"
+                ? "text-glow sticky left-[2rem] z-10 bg-panel text-accent"
                 : "bg-panel text-mute"
             } ${t === onClockTeam ? "animate-clock-pulse" : ""}`}
           >
@@ -78,7 +78,7 @@ function Row({
             key={t}
             className={`min-h-11 px-1.5 py-1 text-xs ${
               t === user
-                ? "sticky left-[2rem] z-10 border-x border-accent/25 bg-accent/[0.06]"
+                ? "sticky left-[2rem] z-10 border-x border-accent/25 bg-panel"
                 : "bg-panel"
             } ${onClock === t ? "outline outline-1 -outline-offset-1 outline-accent/60 shadow-[inset_0_0_14px_-6px_rgba(34,211,238,0.5)]" : ""}`}
           >
