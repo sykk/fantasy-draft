@@ -7,7 +7,7 @@ export default function Home() {
   return (
     <div className="mx-auto flex max-w-2xl flex-col items-center gap-10 pt-10 text-center">
       <header>
-        <h1 className="font-display text-6xl font-bold leading-none tracking-wide sm:text-7xl">
+        <h1 className="font-display text-4xl font-bold leading-none tracking-wide sm:text-6xl lg:text-7xl">
           YOUR BOARD.
           <br />
           <span className="text-accent">YOUR DRAFT.</span>
