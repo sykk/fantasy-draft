@@ -18,7 +18,11 @@ async function writeLocalStore(store: Record<string, string>): Promise<void> {
 }
 
 function hasRedisConfig(): boolean {
-  return Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+  const configured = Boolean(process.env.UPSTASH_REDIS_REST_URL && process.env.UPSTASH_REDIS_REST_TOKEN);
+  if (!configured && process.env.VERCEL) {
+    throw new Error("UPSTASH_REDIS_REST_URL/UPSTASH_REDIS_REST_TOKEN are required in deployed environments");
+  }
+  return configured;
 }
 
 async function getRedisClient() {

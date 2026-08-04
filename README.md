@@ -29,6 +29,15 @@ npm run fetch-data
 
 This writes `data/player-stats.json`. To bump the season, change the `SEASON` constant at the top of `scripts/fetch-stats.mjs`.
 
+## Multi-user storage
+
+The app persists per-user data (rankings, tags, etc.) via `/api/store/[key]`, backed by Upstash Redis. In a real deployment, set these env vars:
+
+- `UPSTASH_REDIS_REST_URL`
+- `UPSTASH_REDIS_REST_TOKEN`
+
+Get these by provisioning an Upstash Redis database, either directly at [upstash.com](https://upstash.com) or through your hosting platform's storage integrations (e.g. Vercel's Marketplace). Without them, local dev automatically falls back to a gitignored local JSON file (`.data/kv-store.json`) — no setup needed. In a deployed environment (detected via Vercel's `VERCEL` env var), missing these vars throws an error at startup instead of silently falling back, since a deployed filesystem can't reliably persist writes.
+
 ## Stack
 
 Next.js 16 (App Router, Turbopack) · React 19 · TypeScript · Tailwind CSS v4 · Zustand · @dnd-kit

@@ -9,7 +9,7 @@ export async function POST(request: Request) {
   const name = String(formData.get("name") ?? "").trim();
 
   if (!name) {
-    return NextResponse.redirect(new URL("/welcome?error=1", request.url));
+    return NextResponse.redirect(new URL("/welcome?error=1", request.url), { status: 303 });
   }
 
   const cookieStore = await cookies();
@@ -19,7 +19,7 @@ export async function POST(request: Request) {
     sameSite: "lax",
   });
 
-  return NextResponse.redirect(new URL("/", request.url));
+  return NextResponse.redirect(new URL("/", request.url), { status: 303 });
 }
 
 export async function DELETE(request: Request) {
