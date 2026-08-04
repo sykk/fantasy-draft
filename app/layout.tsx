@@ -52,7 +52,7 @@ export default function RootLayout({
             >
               DRAFT<span className="text-fg">LAB</span>
             </Link>
-            <div className="hidden md:flex md:items-center md:gap-3 sm:gap-6">
+            <div className="hidden md:flex md:items-center md:gap-6 sm:gap-6">
               <NavLinks />
               <IdentitySwitcher />
             </div>
