@@ -11,10 +11,10 @@ const LINKS = [
   { href: "/trade", label: "Trade Analyzer" },
 ];
 
-export function NavLinks() {
+export function NavLinks({ vertical = false }: { vertical?: boolean }) {
   const pathname = usePathname();
   return (
-    <nav className="flex items-center gap-1">
+    <nav className={vertical ? "flex flex-col gap-1" : "flex items-center gap-1"}>
       {LINKS.map(({ href, label }) => {
         const active = pathname.startsWith(href);
         return (
@@ -22,6 +22,8 @@ export function NavLinks() {
             key={href}
             href={href}
             className={`rounded-md px-2 py-2 font-display text-xs font-semibold uppercase tracking-widest whitespace-nowrap transition-colors sm:px-3 ${
+              vertical ? "w-full" : ""
+            } ${
               active
                 ? "border border-accent/30 bg-accent/10 text-accent shadow-[0_0_14px_-4px_rgba(34,211,238,0.5)]"
                 : "text-mute hover:bg-panel hover:text-fg"
