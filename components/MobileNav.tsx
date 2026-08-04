@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { NavLinks } from "@/components/NavLinks";
 import { IdentitySwitcher } from "@/components/IdentitySwitcher";
 
@@ -51,19 +52,21 @@ export function MobileNav() {
         />
       </button>
 
-      {open && (
-        <>
-          <div className="fixed inset-0 z-40 bg-ink/70" onClick={() => setOpen(false)} aria-hidden="true" />
-          <div className="fixed right-0 top-0 z-50 h-full w-64 max-w-[80vw] space-y-1 border-l border-line bg-panel p-4">
-            <div className="mb-3 border-b border-line pb-3">
-              <IdentitySwitcher />
+      {open &&
+        createPortal(
+          <>
+            <div className="fixed inset-0 z-40 bg-ink/70" onClick={() => setOpen(false)} aria-hidden="true" />
+            <div className="fixed right-0 top-0 z-50 h-full w-64 max-w-[80vw] space-y-1 border-l border-line bg-panel p-4">
+              <div className="mb-3 border-b border-line pb-3">
+                <IdentitySwitcher />
+              </div>
+              <div onClick={() => setOpen(false)}>
+                <NavLinks vertical />
+              </div>
             </div>
-            <div onClick={() => setOpen(false)}>
-              <NavLinks vertical />
-            </div>
-          </div>
-        </>
-      )}
+          </>,
+          document.body
+        )}
     </div>
   );
 }
