@@ -19,12 +19,14 @@ export function DraftBoardGrid() {
         style={{ gridTemplateColumns: `2rem repeat(${config.teams}, minmax(5.5rem, 1fr))` }}
       >
         {/* header row */}
-        <div className="bg-panel" />
+        <div className="sticky left-0 z-20 bg-panel" />
         {Array.from({ length: config.teams }, (_, t) => (
           <div
             key={t}
             className={`px-1 py-1.5 text-center font-mono text-[10px] font-bold uppercase tracking-widest ${
-              t === user ? "text-glow bg-accent/10 text-accent" : "bg-panel text-mute"
+              t === user
+                ? "text-glow sticky left-[2rem] z-10 bg-accent/10 text-accent"
+                : "bg-panel text-mute"
             } ${t === onClockTeam ? "animate-clock-pulse" : ""}`}
           >
             {t === user ? "YOU" : `TM ${t + 1}`}
@@ -64,7 +66,7 @@ function Row({
 }) {
   return (
     <>
-      <div className="flex items-center justify-center bg-panel font-mono text-[10px] font-semibold text-mute tabular-nums">
+      <div className="sticky left-0 z-20 flex items-center justify-center bg-panel font-mono text-[10px] font-semibold text-mute tabular-nums">
         {round + 1}
       </div>
       {Array.from({ length: teams }, (_, t) => {
@@ -76,7 +78,7 @@ function Row({
             key={t}
             className={`min-h-11 px-1.5 py-1 text-xs ${
               t === user
-                ? "border-x border-accent/25 bg-accent/[0.06]"
+                ? "sticky left-[2rem] z-10 border-x border-accent/25 bg-accent/[0.06]"
                 : "bg-panel"
             } ${onClock === t ? "outline outline-1 -outline-offset-1 outline-accent/60 shadow-[inset_0_0_14px_-6px_rgba(34,211,238,0.5)]" : ""}`}
           >
