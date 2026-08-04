@@ -3,6 +3,7 @@
 import { create } from "zustand";
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { aiSelect } from "@/lib/ai";
+import { remoteStorage } from "@/lib/remoteStorage";
 import { sanitizeOrder, useRankings } from "@/lib/useRankings";
 import { POSITIONS } from "@/lib/types";
 import type { DraftConfig, DraftPick, DraftSummary, Player, Position } from "@/lib/types";
@@ -203,15 +204,16 @@ export const useDraft = create<DraftState>()((set, get) => {
 
 const HISTORY_KEY = "draftlab-history";
 
-export function loadHistory(): DraftSummary[] {
+export async function loadHistory(): Promise<DraftSummary[]> {
   try {
-    return JSON.parse(localStorage.getItem(HISTORY_KEY) ?? "[]");
+    const raw = await remoteStorage.getItem(HISTORY_KEY);
+    return raw ? JSON.parse(raw) : [];
   } catch {
     return [];
   }
 }
 
-function saveHistory(picks: DraftPick[], config: DraftConfig) {
+async function saveHistory(picks: DraftPick[], config: DraftConfig) {
   const grade = gradeFor(picks, config);
   const entry: DraftSummary = {
     finishedAt: Date.now(),
@@ -222,12 +224,10 @@ function saveHistory(picks: DraftPick[], config: DraftConfig) {
     grade: grade.grade,
   };
   try {
-    localStorage.setItem(
-      HISTORY_KEY,
-      JSON.stringify([entry, ...loadHistory()].slice(0, 20))
-    );
+    const existing = await loadHistory();
+    await remoteStorage.setItem(HISTORY_KEY, JSON.stringify([entry, ...existing].slice(0, 20)));
   } catch {
-    // localStorage unavailable (private mode/quota) — history just isn't saved
+    // remote storage unavailable — history just isn't saved
   }
 }
 
