@@ -39,6 +39,9 @@ yarn-error.log*
 # claude code worktrees (each has its own node_modules)
 .claude/
 
+# superpowers brainstorming companion sessions
+.superpowers/
+
 # typescript
 *.tsbuildinfo
 next-env.d.ts
