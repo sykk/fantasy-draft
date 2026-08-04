@@ -19,24 +19,19 @@ import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { rankMap, sanitizeOrder, useRankings } from "@/lib/useRankings";
 import { useMounted } from "@/lib/useMounted";
-import type { Player, PlayerTag, Position } from "@/lib/types";
-import { PlayerTile } from "@/components/PlayerTile";
+import type { Player, Position } from "@/lib/types";
+import { PlayerRankRow } from "@/components/PlayerRankRow";
 import { FilterBar, type PosFilter } from "@/components/FilterBar";
 import { PlayerDetailCard } from "@/components/PlayerDetailCard";
-import { RankingsTable } from "@/components/RankingsTable";
 import { POS_BORDER } from "@/components/ui";
-
-type View = "cards" | "table";
 
 export function RankingsBoard() {
   const mounted = useMounted();
 
   const order = useRankings((s) => s.order);
-  const tags = useRankings((s) => s.tags);
   const move = useRankings((s) => s.move);
   const resetToAdp = useRankings((s) => s.resetToAdp);
 
-  const [view, setView] = useState<View>("cards");
   const [filter, setFilter] = useState<PosFilter>("ALL");
   const [query, setQuery] = useState("");
   const [expandedId, setExpandedId] = useState<string | null>(null);
@@ -93,46 +88,21 @@ export function RankingsBoard() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <FilterBar filter={filter} onFilter={setFilter} query={query} onQuery={setQuery} />
-        <div className="flex items-center gap-2">
-          <div className="flex gap-1">
-            {(["cards", "table"] as View[]).map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => setView(v)}
-                className={`rounded-full px-3 py-1.5 font-display text-xs font-semibold uppercase tracking-widest transition-all duration-200 ${
-                  view === v
-                    ? "bg-accent text-ink glow-accent"
-                    : "bg-panel text-mute hover:bg-panel2"
-                }`}
-              >
-                {v}
-              </button>
-            ))}
-          </div>
-          <button
-            type="button"
-            onClick={() => {
-              if (confirm("Reset your board back to default ADP order?")) resetToAdp();
-            }}
-            className="rounded-full border border-line px-3 py-1.5 text-sm text-mute transition-colors hover:border-down hover:text-down"
-          >
-            Reset to ADP
-          </button>
-        </div>
+        <button
+          type="button"
+          onClick={() => {
+            if (confirm("Reset your board back to default ADP order?")) resetToAdp();
+          }}
+          className="rounded-full border border-line px-3 py-1.5 text-sm text-mute transition-colors hover:border-down hover:text-down"
+        >
+          Reset to ADP
+        </button>
       </div>
 
       {visible.length === 0 ? (
         <p className="rounded-lg border border-line bg-panel px-4 py-8 text-center text-sm text-mute">
           No players match. Clear the search or pick another position.
         </p>
-      ) : view === "table" ? (
-        <RankingsTable
-          players={visible}
-          ranks={ranks}
-          expandedId={expandedId}
-          onToggle={toggleExpanded}
-        />
       ) : (
         <DndContext
           sensors={sensors}
@@ -157,36 +127,22 @@ export function RankingsBoard() {
                       </span>
                       <span className="h-px flex-1 bg-gradient-to-r from-accent/40 via-line to-transparent" />
                     </div>
-                    <ul className="space-y-1.5">
-                      {group.players.map((p) => (
-                        <li key={p.id}>
-                          <SortableRow
-                            player={p}
-                            rank={ranks.get(p.id) ?? p.adp}
-                            tags={tags[p.id] ?? []}
-                            expanded={expandedId === p.id}
-                            onToggle={() => toggleExpanded(p.id)}
-                          />
-                        </li>
-                      ))}
-                    </ul>
+                    <PlayerList
+                      players={group.players}
+                      ranks={ranks}
+                      expandedId={expandedId}
+                      onToggle={toggleExpanded}
+                    />
                   </div>
                 ))}
               </div>
             ) : (
-              <ul className="space-y-1.5">
-                {visible.map((p) => (
-                  <li key={p.id}>
-                    <SortableRow
-                      player={p}
-                      rank={ranks.get(p.id) ?? p.adp}
-                      tags={tags[p.id] ?? []}
-                      expanded={expandedId === p.id}
-                      onToggle={() => toggleExpanded(p.id)}
-                    />
-                  </li>
-                ))}
-              </ul>
+              <PlayerList
+                players={visible}
+                ranks={ranks}
+                expandedId={expandedId}
+                onToggle={toggleExpanded}
+              />
             )}
           </SortableContext>
         </DndContext>
@@ -195,17 +151,49 @@ export function RankingsBoard() {
   );
 }
 
+function PlayerList({
+  players,
+  ranks,
+  expandedId,
+  onToggle,
+}: {
+  players: Player[];
+  ranks: Map<string, number>;
+  expandedId: string | null;
+  onToggle: (id: string) => void;
+}) {
+  return (
+    <ul className="space-y-1.5">
+      {players.flatMap((p) => {
+        const items = [
+          <li key={p.id}>
+            <SortableRow
+              player={p}
+              rank={ranks.get(p.id) ?? p.adp}
+              onToggle={() => onToggle(p.id)}
+            />
+          </li>,
+        ];
+        if (expandedId === p.id) {
+          items.push(
+            <li key={`${p.id}-detail`} className="rounded-lg border border-line bg-panel">
+              <PlayerDetailCard player={p} />
+            </li>
+          );
+        }
+        return items;
+      })}
+    </ul>
+  );
+}
+
 function SortableRow({
   player,
   rank,
-  tags,
-  expanded,
   onToggle,
 }: {
   player: Player;
   rank: number;
-  tags: PlayerTag[];
-  expanded: boolean;
   onToggle: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -215,40 +203,14 @@ function SortableRow({
     <div
       ref={setNodeRef}
       style={{ transform: CSS.Transform.toString(transform), transition }}
-      className={isDragging ? "relative z-10 opacity-90" : ""}
+      {...attributes}
+      {...listeners}
+      onClick={onToggle}
+      className={`cursor-grab touch-none active:cursor-grabbing ${
+        isDragging ? "relative z-10 opacity-90" : ""
+      }`}
     >
-      <PlayerTile
-        player={player}
-        rank={rank}
-        delta={player.adp - rank}
-        tags={tags}
-        onClick={onToggle}
-        right={
-          <button
-            type="button"
-            aria-label={`Drag to reorder ${player.name}`}
-            {...attributes}
-            {...listeners}
-            onClick={(e) => e.stopPropagation()}
-            className="cursor-grab touch-none rounded-md px-2 py-2 text-mute hover:bg-panel2 hover:text-fg active:cursor-grabbing"
-          >
-            <svg width="14" height="14" viewBox="0 0 14 14" fill="currentColor" aria-hidden>
-              <circle cx="4" cy="2.5" r="1.3" />
-              <circle cx="10" cy="2.5" r="1.3" />
-              <circle cx="4" cy="7" r="1.3" />
-              <circle cx="10" cy="7" r="1.3" />
-              <circle cx="4" cy="11.5" r="1.3" />
-              <circle cx="10" cy="11.5" r="1.3" />
-            </svg>
-          </button>
-        }
-      >
-        {expanded && (
-          <div className="border-t border-line">
-            <PlayerDetailCard player={player} />
-          </div>
-        )}
-      </PlayerTile>
+      <PlayerRankRow player={player} rank={rank} />
     </div>
   );
 }
