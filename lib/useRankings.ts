@@ -1,8 +1,9 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { PLAYERS } from "@/data/players";
+import { remoteStorage } from "@/lib/remoteStorage";
 import type { PlayerTag } from "@/lib/types";
 
 const DEFAULT_ORDER = PLAYERS.map((p) => p.id);
@@ -47,6 +48,7 @@ export const useRankings = create<RankingsState>()(
     }),
     {
       name: "draftlab-rankings",
+      storage: createJSONStorage(() => remoteStorage),
       // v1: seed data switched to live Underdog ADP — reset stale custom
       // orders to the new board but keep the user's tags and notes.
       version: 1,

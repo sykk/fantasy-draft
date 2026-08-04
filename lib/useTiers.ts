@@ -1,8 +1,9 @@
 "use client";
 
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { PLAYERS } from "@/data/players";
+import { remoteStorage } from "@/lib/remoteStorage";
 import type { Position } from "@/lib/types";
 
 export type TierKey = "S" | "A" | "B" | "C" | "D" | "F";
@@ -96,6 +97,6 @@ export const useTiers = create<TiersState>()(
       clearTiers: (pos) =>
         set((s) => ({ boards: { ...s.boards, [pos]: emptyBoard(pos) } })),
     }),
-    { name: "draftlab-tiers" }
+    { name: "draftlab-tiers", storage: createJSONStorage(() => remoteStorage) }
   )
 );
