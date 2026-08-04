@@ -108,6 +108,7 @@ export function RankingsBoard() {
           sensors={sensors}
           collisionDetection={closestCenter}
           modifiers={[restrictToVerticalAxis]}
+          onDragStart={() => setExpandedId(null)}
           onDragEnd={handleDragEnd}
         >
           <SortableContext
