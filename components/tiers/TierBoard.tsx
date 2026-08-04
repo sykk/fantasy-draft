@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
@@ -19,6 +19,7 @@ import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sort
 import { CSS } from "@dnd-kit/utilities";
 import { PLAYER_BY_ID } from "@/data/players";
 import { useTiers, sanitizeBoard, SLOT_KEYS, TIER_KEYS, type SlotKey } from "@/lib/useTiers";
+import { useMounted } from "@/lib/useMounted";
 import type { Player, Position } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
 import { POS_BORDER, POS_TEXT } from "@/components/ui";
@@ -43,8 +44,7 @@ const collisionDetection: CollisionDetection = (args) => {
 };
 
 export function TierBoard() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   const [pos, setPos] = useState<Position>("RB");
   const rawBoard = useTiers((s) => s.boards[pos]);

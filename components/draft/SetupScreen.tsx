@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useMemo, useState } from "react";
 import { loadHistory, useDraft } from "@/lib/useDraft";
-import type { DraftSummary } from "@/lib/types";
+import { useMounted } from "@/lib/useMounted";
 
 const TEAM_OPTIONS = [8, 10, 12, 14];
 const ROUND_OPTIONS = [12, 15, 18];
@@ -15,9 +15,8 @@ export function SetupScreen() {
   const [rounds, setRounds] = useState(15);
   const [scoring, setScoring] = useState<(typeof SCORING_OPTIONS)[number]>("half-ppr");
   const [strict, setStrict] = useState(false);
-  const [history, setHistory] = useState<DraftSummary[]>([]);
-
-  useEffect(() => setHistory(loadHistory()), []);
+  const mounted = useMounted();
+  const history = useMemo(() => (mounted ? loadHistory() : []), [mounted]);
 
   function handleStart() {
     const chosenSlot =

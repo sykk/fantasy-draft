@@ -1,15 +1,14 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { useDraft } from "@/lib/useDraft";
+import { useMounted } from "@/lib/useMounted";
 import { SetupScreen } from "@/components/draft/SetupScreen";
 import { DraftRoom } from "@/components/draft/DraftRoom";
 import { Results } from "@/components/draft/Results";
 
 export default function MockPage() {
   const phase = useDraft((s) => s.phase);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
   if (!mounted) return null;
 
   if (phase === "setup") return <SetupScreen />;

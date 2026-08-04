@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useMemo, useState } from "react";
 import {
   DndContext,
   PointerSensor,
@@ -18,6 +18,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { rankMap, sanitizeOrder, useRankings } from "@/lib/useRankings";
+import { useMounted } from "@/lib/useMounted";
 import type { Player, PlayerTag, Position } from "@/lib/types";
 import { PlayerTile } from "@/components/PlayerTile";
 import { FilterBar, type PosFilter } from "@/components/FilterBar";
@@ -28,8 +29,7 @@ import { POS_BORDER } from "@/components/ui";
 type View = "cards" | "table";
 
 export function RankingsBoard() {
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => setMounted(true), []);
+  const mounted = useMounted();
 
   const order = useRankings((s) => s.order);
   const tags = useRankings((s) => s.tags);

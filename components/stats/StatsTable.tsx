@@ -102,7 +102,6 @@ export function StatsTable() {
 
   const seasonStats = STATS_BY_SEASON[season];
   const cols = COLUMNS[pos];
-  const activeCol = cols.find((c) => c.key === sortKey);
 
   function handleSort(key: string) {
     if (key === sortKey) {

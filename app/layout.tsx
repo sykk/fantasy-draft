@@ -1,5 +1,6 @@
 import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono, Space_Grotesk } from "next/font/google";
+import Link from "next/link";
 import "./globals.css";
 import { NavLinks } from "@/components/NavLinks";
 
@@ -43,12 +44,12 @@ export default function RootLayout({
       <body className="min-h-full flex flex-col">
         <header className="glass sticky top-0 z-40 border-x-0 border-t-0 bg-[#0c0e16]">
           <div className="mx-auto flex h-14 max-w-6xl items-center gap-3 overflow-x-auto px-4 sm:gap-6">
-            <a
+            <Link
               href="/"
               className="shrink-0 font-display text-xl font-bold tracking-[0.18em] text-accent"
             >
               DRAFT<span className="text-fg">LAB</span>
-            </a>
+            </Link>
             <NavLinks />
           </div>
         </header>
