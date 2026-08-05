@@ -4,7 +4,8 @@ import { useMemo, useState } from "react";
 import {
   DndContext,
   DragOverlay,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   pointerWithin,
   rectIntersection,
   useDroppable,
@@ -59,7 +60,8 @@ export function TierBoard() {
   const [detailId, setDetailId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
   const slotOf = useMemo(() => {
@@ -284,7 +286,7 @@ function SortableTierCard({ player, onClick }: { player: Player; onClick: () => 
 function TierCard({ player, overlay = false }: { player: Player; overlay?: boolean }) {
   return (
     <div
-      className={`min-w-28 max-w-48 cursor-grab touch-none rounded-md border border-line border-l-2 bg-panel2 px-2 py-1.5 select-none sm:min-w-32 ${
+      className={`min-w-28 max-w-48 cursor-grab touch-pan-y rounded-md border border-line border-l-2 bg-panel2 px-2 py-1.5 select-none sm:min-w-32 ${
         POS_BORDER[player.position]
       } ${
         overlay

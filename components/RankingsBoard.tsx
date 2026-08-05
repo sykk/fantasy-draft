@@ -3,7 +3,8 @@
 import { useMemo, useState } from "react";
 import {
   DndContext,
-  PointerSensor,
+  MouseSensor,
+  TouchSensor,
   closestCenter,
   useSensor,
   useSensors,
@@ -37,7 +38,8 @@ export function RankingsBoard() {
   const [expandedId, setExpandedId] = useState<string | null>(null);
 
   const sensors = useSensors(
-    useSensor(PointerSensor, { activationConstraint: { distance: 5 } })
+    useSensor(MouseSensor, { activationConstraint: { distance: 5 } }),
+    useSensor(TouchSensor, { activationConstraint: { delay: 200, tolerance: 8 } })
   );
 
   const ranks = useMemo(() => rankMap(order), [order]);
@@ -207,7 +209,7 @@ function SortableRow({
       {...attributes}
       {...listeners}
       onClick={onToggle}
-      className={`cursor-grab touch-none active:cursor-grabbing ${
+      className={`cursor-grab touch-pan-y active:cursor-grabbing ${
         isDragging ? "relative z-10 opacity-90" : ""
       }`}
     >
