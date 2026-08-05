@@ -4,6 +4,11 @@ import { PLAYER_BY_ID } from "@/data/players";
 import { useDraft, teamForPick } from "@/lib/useDraft";
 import { POS_BORDER, POS_TEXT } from "@/components/ui";
 
+// Shared with the sticky `left-[var(--round-col)]` offsets below, via a CSS
+// custom property, so the round-number column's width can't drift out of
+// sync with where the sticky "YOU" column pins itself.
+const ROUND_COL_WIDTH = "2rem";
+
 export function DraftBoardGrid() {
   const { config, picks, phase } = useDraft();
   const user = config.slot - 1;
@@ -16,7 +21,10 @@ export function DraftBoardGrid() {
     <div className="scanlines relative overflow-x-auto rounded-xl border border-line bg-panel">
       <div
         className="grid min-w-max gap-px bg-line/70"
-        style={{ gridTemplateColumns: `2rem repeat(${config.teams}, minmax(5.5rem, 1fr))` }}
+        style={{
+          gridTemplateColumns: `${ROUND_COL_WIDTH} repeat(${config.teams}, minmax(5.5rem, 1fr))`,
+          ["--round-col" as string]: ROUND_COL_WIDTH,
+        }}
       >
         {/* header row */}
         <div className="sticky left-0 z-20 bg-panel" />
@@ -25,7 +33,7 @@ export function DraftBoardGrid() {
             key={t}
             className={`px-1 py-1.5 text-center font-mono text-[10px] font-bold uppercase tracking-widest ${
               t === user
-                ? "text-glow sticky left-[2rem] z-10 bg-panel text-accent"
+                ? "text-glow sticky left-[var(--round-col)] z-10 bg-[#142734] text-accent"
                 : "bg-panel text-mute"
             }`}
           >
@@ -80,7 +88,7 @@ function Row({
             key={t}
             className={`min-h-11 px-1.5 py-1 text-xs ${
               t === user
-                ? "sticky left-[2rem] z-10 border-x border-accent/25 bg-panel"
+                ? "sticky left-[var(--round-col)] z-10 border-x border-accent/25 bg-[#131f2b]"
                 : "bg-panel"
             } ${onClock === t ? "outline outline-1 -outline-offset-1 outline-accent/60 shadow-[inset_0_0_14px_-6px_rgba(34,211,238,0.5)]" : ""}`}
           >
