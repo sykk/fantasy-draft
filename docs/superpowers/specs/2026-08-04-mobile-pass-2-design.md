@@ -18,14 +18,14 @@ Fix: add a smaller base size, scaling up through breakpoints: `text-4xl sm:text-
 
 The board is a CSS Grid (`2rem` round-number column + N team columns, each `minmax(5.5rem, 1fr)`) inside an `overflow-x-auto` container — already reasonable for a dense data grid, but scrolling to see other teams loses track of what round you're in and your own team's picks.
 
-Direction (confirmed): keep the grid and horizontal scroll (matches how the Stats table already handles being a wide data table on mobile), but pin two things while scrolling, reusing the sticky-column pattern already used in `components/RankingsTable.tsx` and `components/stats/StatsTable.tsx` (`sticky left-0` on a cell within a scrollable container):
+Direction (confirmed): keep the grid and horizontal scroll (matches how the Stats table already handles being a wide data table on mobile), but pin two things while scrolling, reusing the sticky-column pattern already used in `components/stats/StatsTable.tsx` (`sticky left-0` on a cell within a scrollable container):
 
 - The round-number column (already the first column) gets `sticky left-0`.
 - The user's own team column (`t === user`) gets `sticky left-[2rem]` (offset by the round column's `2rem` width), so it sits pinned immediately to the right of the round column.
 
 Both need a solid background color (matching the grid's existing per-cell backgrounds) so scrolled-past content doesn't show through underneath the sticky cells, and a `z-index` above the non-sticky cells (`z-20` for round column, `z-10` for the user column, mirroring `StatsTable.tsx`'s `z-20`/`z-10` header/body layering convention) so they paint on top while scrolling.
 
-This applies to both the header row (`DraftBoardGrid`'s own team-header cells) and every round's cells (`Row`'s per-team cells) — four insertion points total (header round-corner cell doesn't need it since it's not a scroll-position concern by itself, but the header's "YOU"/"TM N" labels row does need the same two sticky treatments so the pinned columns' headers stay visible too).
+This applies to both the header row (`DraftBoardGrid`'s own team-header cells, including the empty round-corner cell — without it, the corner scrolls away and the team headers slide underneath the still-pinned round column below) and every round's cells (`Row`'s per-team cells) — four insertion points total.
 
 ## 3. Touch drag-and-drop — audited, no change
 
