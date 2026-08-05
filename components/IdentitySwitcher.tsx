@@ -2,9 +2,10 @@
 
 import { useRouter } from "next/navigation";
 import { useMounted } from "@/lib/useMounted";
+import { IDENTITY_COOKIE } from "@/lib/identity";
 
 function readIdentityCookie(): string | null {
-  const match = document.cookie.match(/(?:^|; )draftlab-user=([^;]*)/);
+  const match = document.cookie.match(new RegExp(`(?:^|; )${IDENTITY_COOKIE}=([^;]*)`));
   return match ? decodeURIComponent(match[1]) : null;
 }
 

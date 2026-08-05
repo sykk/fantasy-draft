@@ -1,10 +1,11 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
 import { kvDelete, kvGet, kvSet } from "@/lib/kv";
+import { IDENTITY_COOKIE } from "@/lib/identity";
 
 async function currentUserOrNull(): Promise<string | null> {
   const cookieStore = await cookies();
-  const name = cookieStore.get("draftlab-user")?.value;
+  const name = cookieStore.get(IDENTITY_COOKIE)?.value;
   return name ? name.trim().toLowerCase() : null;
 }
 

@@ -1,7 +1,7 @@
 import { cookies } from "next/headers";
 import { NextResponse } from "next/server";
+import { IDENTITY_COOKIE } from "@/lib/identity";
 
-const COOKIE_NAME = "draftlab-user";
 const ONE_YEAR_SECONDS = 60 * 60 * 24 * 365;
 
 export async function POST(request: Request) {
@@ -13,7 +13,7 @@ export async function POST(request: Request) {
   }
 
   const cookieStore = await cookies();
-  cookieStore.set(COOKIE_NAME, name, {
+  cookieStore.set(IDENTITY_COOKIE, name, {
     maxAge: ONE_YEAR_SECONDS,
     path: "/",
     sameSite: "lax",
@@ -22,8 +22,8 @@ export async function POST(request: Request) {
   return NextResponse.redirect(new URL("/", request.url), { status: 303 });
 }
 
-export async function DELETE(request: Request) {
+export async function DELETE() {
   const cookieStore = await cookies();
-  cookieStore.delete(COOKIE_NAME);
+  cookieStore.delete(IDENTITY_COOKIE);
   return NextResponse.json({ ok: true });
 }
