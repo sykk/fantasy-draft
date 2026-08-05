@@ -27,9 +27,11 @@ export function DraftBoardGrid() {
               t === user
                 ? "text-glow sticky left-[2rem] z-10 bg-panel text-accent"
                 : "bg-panel text-mute"
-            } ${t === onClockTeam ? "animate-clock-pulse" : ""}`}
+            }`}
           >
-            {t === user ? "YOU" : `TM ${t + 1}`}
+            <span className={t === onClockTeam ? "animate-clock-pulse" : ""}>
+              {t === user ? "YOU" : `TM ${t + 1}`}
+            </span>
           </div>
         ))}
 
