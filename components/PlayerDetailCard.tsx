@@ -16,7 +16,7 @@ export function PlayerDetailCard({ player }: { player: Player }) {
   const lastSeason = statsForAppPlayer(player.id);
 
   return (
-    <div className="space-y-3 px-3 py-3" onClick={(e) => e.stopPropagation()}>
+    <div className="space-y-3 px-3 py-3">
       {lastSeason && (
         <Link
           href={`/stats/${lastSeason.id}?season=${lastSeason.season}`}
