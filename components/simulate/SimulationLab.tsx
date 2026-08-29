@@ -155,7 +155,7 @@ function TargetHitRate({ result }: { result: SimulationResult }) {
 
 /**
  * One row per position rather than a stacked bar per round: the position name
- * labels its own row, so the reader never has to tell two chart colors apart.
+ * labels its own row, so identity never rests on color alone.
  */
 function PositionRuns({ result }: { result: SimulationResult }) {
   const peak = (pos: Position) =>

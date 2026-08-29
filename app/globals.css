@@ -18,11 +18,15 @@
   /* accents — electric cyan primary, violet reserved for one highlight */
   --color-accent: #22d3ee;
   --color-accent2: #a855f7;
-  /* positions (desaturated to sit inside the dark palette) */
-  --color-qb: #e26a85;
-  --color-rb: #43bd96;
-  --color-wr: #5c9ee0;
-  --color-te: #e0a263;
+  /* positions — amber/teal/indigo/orchid, chosen so no two are confusable
+     under protanopia or deuteranopia (worst pair ΔE 8.0, OKLab ×100) and so
+     none reads as the cyan accent or the up/down status colors. Every use is
+     paired with the position's own letters, which is what makes the 8.0 legal.
+     Re-check with the dataviz skill's validate_palette.js before editing. */
+  --color-qb: #d65bc9;
+  --color-rb: #058ca5;
+  --color-wr: #6f71fb;
+  --color-te: #b2720c;
   /* status */
   --color-up: #3fcf8e;
   --color-down: #f26d6d;
