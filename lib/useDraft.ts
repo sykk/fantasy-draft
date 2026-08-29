@@ -176,7 +176,14 @@ export const useDraft = create<DraftState>()((set, get) => {
         if (pl) counts[pl.position] += 1;
       }
       const round = Math.floor(expectedOverall / config.teams);
-      const choice = aiSelect(availableByAdp(), counts, round, config.rounds, config.scoring);
+      const choice = aiSelect(
+        availableByAdp(),
+        counts,
+        round,
+        config.rounds,
+        config.scoring,
+        Math.random
+      );
       applyPick(choice.id);
     },
 

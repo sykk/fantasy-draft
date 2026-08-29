@@ -13,14 +13,16 @@ const PICKS_PER_POINT = 0.25;
 /**
  * Pick for an AI team: roughly by ADP with a little jitter, nudged by
  * positional need so teams don't hoard one position or forget QB/TE.
- * `available` must be sorted by ADP ascending.
+ * `available` must be sorted by ADP ascending. `rng` returns [0, 1) — pass a
+ * seeded one to replay a draft exactly.
  */
 export function aiSelect(
   available: Player[],
   counts: Record<Position, number>,
   round: number, // 0-based
   totalRounds: number,
-  scoring: Scoring
+  scoring: Scoring,
+  rng: () => number
 ): Player {
   const pool = available.slice(0, 14);
   const roundsLeft = totalRounds - round;
@@ -34,7 +36,7 @@ export function aiSelect(
   let best = pool[0];
   let bestScore = Infinity;
   for (const [i, p] of pool.entries()) {
-    let score = p.adp + (Math.random() * 6 - 3) - (deltas[i] - avgDelta) * PICKS_PER_POINT;
+    let score = p.adp + (rng() * 6 - 3) - (deltas[i] - avgDelta) * PICKS_PER_POINT;
     const have = counts[p.position];
 
     if (have >= HARD_CAPS[p.position]) score += 500;

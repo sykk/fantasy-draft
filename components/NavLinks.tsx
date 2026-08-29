@@ -9,6 +9,7 @@ const LINKS = [
   { href: "/stats", label: "Stats" },
   { href: "/vegas", label: "Vegas" },
   { href: "/mock", label: "Mock Draft" },
+  { href: "/simulate", label: "Simulations" },
   { href: "/trade", label: "Trade Analyzer" },
 ];
 
