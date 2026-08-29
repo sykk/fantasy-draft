@@ -2,7 +2,7 @@
 
 import Link from "next/link";
 import { pointsFor } from "@/lib/scoring";
-import { useLeague } from "@/lib/useLeague";
+import { useScoring } from "@/lib/useLeague";
 import { useRankings } from "@/lib/useRankings";
 import { POS_RANK_BY_SEASON, statsForAppPlayer } from "@/lib/stats";
 import type { Player } from "@/lib/types";
@@ -16,7 +16,7 @@ export function PlayerDetailCard({ player }: { player: Player }) {
   const toggleTag = useRankings((s) => s.toggleTag);
   const setNote = useRankings((s) => s.setNote);
   const lastSeason = statsForAppPlayer(player.id);
-  const scoring = useLeague((s) => s.scoring);
+  const scoring = useScoring();
 
   return (
     <div className="space-y-3 px-3 py-3">

@@ -3,7 +3,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { PLAYER_BY_ID } from "@/data/players";
 import { pointsFor, SCORING_LABEL } from "@/lib/scoring";
-import { STARTERS } from "@/lib/roster";
+import { startingLineup } from "@/lib/roster";
+
 import { gradeFor, loadHistory, useDraft } from "@/lib/useDraft";
 import { useMounted } from "@/lib/useMounted";
 import type { DraftRecord, Player, Position } from "@/lib/types";
@@ -188,13 +189,9 @@ function positionCounts(players: Player[]): Record<Position, number> {
   return counts;
 }
 
-/** The roster's starters, best first within each position, so two drafts line
- *  up row for row when they are shown side by side. */
+/** The roster's starters under the league it was drafted in, sorted by
+ *  position so two drafts line up row for row when shown side by side. */
 function startersByPosition(players: Player[], record: DraftRecord): Player[] {
-  return POSITIONS.flatMap((pos) =>
-    players
-      .filter((p) => p.position === pos)
-      .sort((a, b) => pointsFor(b, record.config.scoring) - pointsFor(a, record.config.scoring))
-      .slice(0, STARTERS[pos])
-  );
+  const lineup = startingLineup(players, record.config.scoring, record.config.slots);
+  return POSITIONS.flatMap((pos) => lineup.filter((p) => p.position === pos));
 }

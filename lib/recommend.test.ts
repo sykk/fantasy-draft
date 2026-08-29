@@ -1,6 +1,7 @@
 import { describe, expect, test } from "vitest";
 import { nextUserPick, recommendPicks, type RecommendInput } from "@/lib/recommend";
 import type { Player, Position } from "@/lib/types";
+import { DEFAULT_SLOTS } from "@/lib/roster";
 import type { SlotKey } from "@/lib/useTiers";
 
 let nextId = 0;
@@ -29,6 +30,7 @@ function input(over: Partial<RecommendInput> = {}): RecommendInput {
     tiers: new Map(),
     overall: 0,
     nextOverall: null,
+    slots: DEFAULT_SLOTS,
     ...over,
   };
 }

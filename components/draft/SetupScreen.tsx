@@ -1,27 +1,33 @@
 "use client";
 
 import { useState } from "react";
-import { SCORINGS, SCORING_LABEL } from "@/lib/scoring";
+import Link from "next/link";
+import { SCORING_LABEL } from "@/lib/scoring";
+import { rosterSize } from "@/lib/roster";
 import { useDraft } from "@/lib/useDraft";
-import { useLeague } from "@/lib/useLeague";
+import { useActiveLeague } from "@/lib/useLeague";
 import { DraftHistory } from "@/components/draft/DraftHistory";
-
-const TEAM_OPTIONS = [8, 10, 12, 14];
-const ROUND_OPTIONS = [12, 15, 18];
 
 export function SetupScreen() {
   const start = useDraft((s) => s.start);
-  const scoring = useLeague((s) => s.scoring);
-  const setScoring = useLeague((s) => s.setScoring);
-  const [teams, setTeams] = useState(12);
+  const league = useActiveLeague();
   const [slot, setSlot] = useState<number | "random">("random");
-  const [rounds, setRounds] = useState(15);
   const [strict, setStrict] = useState(false);
+  const teams = league.teams;
+  const rounds = rosterSize(league.slots);
 
   function handleStart() {
     const chosenSlot =
       slot === "random" ? 1 + Math.floor(Math.random() * teams) : Math.min(slot, teams);
-    start({ teams, slot: chosenSlot, rounds, scoring, timerSec: 30, strictRankings: strict });
+    start({
+      teams,
+      slot: chosenSlot,
+      rounds,
+      scoring: league.scoring,
+      slots: league.slots,
+      timerSec: 30,
+      strictRankings: strict,
+    });
   }
 
   return (
@@ -35,20 +41,18 @@ export function SetupScreen() {
       </header>
 
       <section className="glass hud-corners space-y-4 rounded-xl p-4">
-        <Field label="Teams">
-          <div className="flex gap-1.5">
-            {TEAM_OPTIONS.map((n) => (
-              <Chip
-                key={n}
-                active={teams === n}
-                onClick={() => {
-                  setTeams(n);
-                  if (slot !== "random" && slot > n) setSlot(n);
-                }}
-              >
-                {n}
-              </Chip>
-            ))}
+        <Field label="League">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-display text-sm font-semibold">{league.name}</span>
+            <span className="text-xs text-mute">
+              {teams} teams · {SCORING_LABEL[league.scoring]} · {rounds} rounds
+            </span>
+            <Link
+              href="/league"
+              className="ml-auto rounded-full border border-line px-3 py-1 text-xs text-mute transition-colors hover:border-accent hover:text-accent"
+            >
+              Change
+            </Link>
           </div>
         </Field>
 
@@ -59,16 +63,6 @@ export function SetupScreen() {
             </Chip>
             {Array.from({ length: teams }, (_, i) => i + 1).map((n) => (
               <Chip key={n} active={slot === n} onClick={() => setSlot(n)}>
-                {n}
-              </Chip>
-            ))}
-          </div>
-        </Field>
-
-        <Field label="Roster size (rounds)">
-          <div className="flex gap-1.5">
-            {ROUND_OPTIONS.map((n) => (
-              <Chip key={n} active={rounds === n} onClick={() => setRounds(n)}>
                 {n}
               </Chip>
             ))}
@@ -88,20 +82,6 @@ export function SetupScreen() {
             {strict
               ? "Every AI pick is the top available player on your rankings board — fully predictable, no randomness."
               : "AI teams draft near ADP with some variance and roster needs, like a real lobby."}
-          </p>
-        </Field>
-
-        <Field label="Scoring">
-          <div className="flex gap-1.5">
-            {SCORINGS.map((s) => (
-              <Chip key={s} active={scoring === s} onClick={() => setScoring(s)}>
-                {SCORING_LABEL[s]}
-              </Chip>
-            ))}
-          </div>
-          <p className="mt-1.5 text-xs text-mute">
-            Sets the format everywhere — projections on your board, the trade
-            analyzer, and how the AI values pass-catchers.
           </p>
         </Field>
 

@@ -5,16 +5,13 @@ import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { aiSelect } from "@/lib/ai";
 import { remoteStorage } from "@/lib/remoteStorage";
 import { sanitizeOrder, useRankings } from "@/lib/useRankings";
-import { FLEX_POSITIONS, FLEX_SLOTS, STARTERS } from "@/lib/roster";
-import { pointsFor } from "@/lib/scoring";
-import { POSITIONS } from "@/lib/types";
+import { DEFAULT_SLOTS, startingLineupPoints } from "@/lib/roster";
 import type {
   DraftConfig,
   DraftPick,
   DraftRecord,
   Player,
   Position,
-  Scoring,
 } from "@/lib/types";
 
 export type DraftPhase = "setup" | "drafting" | "complete";
@@ -53,6 +50,7 @@ const DEFAULT_CONFIG: DraftConfig = {
   slot: 6,
   rounds: 15,
   scoring: "half-ppr",
+  slots: DEFAULT_SLOTS,
   timerSec: 30,
 };
 
@@ -254,6 +252,7 @@ export function normalizeHistoryEntry(entry: DraftRecord | LegacyEntry): DraftRe
       slot: entry.slot,
       rounds: entry.rounds,
       scoring: "half-ppr",
+      slots: DEFAULT_SLOTS,
       timerSec: DEFAULT_CONFIG.timerSec,
     },
     picks: [],
@@ -309,7 +308,9 @@ export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
     const player = PLAYER_BY_ID.get(pk.playerId);
     if (player) teamPlayers[pk.team].push(player);
   }
-  const totals = teamPlayers.map((players) => startingLineupPoints(players, config.scoring));
+  const totals = teamPlayers.map((players) =>
+    startingLineupPoints(players, config.scoring, config.slots)
+  );
 
   const user = config.slot - 1;
   const totalProj = totals[user];
@@ -344,28 +345,6 @@ export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
     byeConflict: findByeConflict(userPlayers),
     stack: findStack(userPlayers),
   };
-}
-
-/**
- * Points for the best starting lineup among these players in this scoring
- * format, using the slots in lib/roster. A missing position just contributes 0
- * for that slot — never throws.
- */
-export function startingLineupPoints(players: Player[], scoring: Scoring): number {
-  const byPos: Record<Position, Player[]> = { QB: [], RB: [], WR: [], TE: [] };
-  for (const p of players) byPos[p.position].push(p);
-  for (const pos of POSITIONS) {
-    byPos[pos].sort((a, b) => pointsFor(b, scoring) - pointsFor(a, scoring));
-  }
-
-  const starters = POSITIONS.flatMap((pos) => byPos[pos].slice(0, STARTERS[pos]));
-
-  const flexPool = FLEX_POSITIONS.flatMap((pos) => byPos[pos].slice(STARTERS[pos])).sort(
-    (a, b) => pointsFor(b, scoring) - pointsFor(a, scoring)
-  );
-  starters.push(...flexPool.slice(0, FLEX_SLOTS));
-
-  return starters.reduce((sum, p) => sum + pointsFor(p, scoring), 0);
 }
 
 /** Worst bye-week collision in the roster (3+ players sharing a week), or null. Ties go to the lower week number. */

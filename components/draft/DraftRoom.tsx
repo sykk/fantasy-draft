@@ -278,6 +278,7 @@ function BestPicks({ userOnClock }: { userOnClock: boolean }) {
       ranks: rankMap(order),
       tiers: tierLookup(boards),
       overall: picks.length,
+      slots: config.slots,
       nextOverall: nextUserPick(
         picks.length,
         config.teams,
@@ -285,7 +286,7 @@ function BestPicks({ userOnClock }: { userOnClock: boolean }) {
         config.teams * config.rounds
       ),
     });
-  }, [order, boards, picked, picks.length, config.teams, config.rounds, user]);
+  }, [order, boards, picked, picks.length, config.teams, config.rounds, config.slots, user]);
 
   if (suggestions.length === 0) return null;
 

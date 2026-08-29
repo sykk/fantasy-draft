@@ -9,14 +9,13 @@ import {
   type SlotStrength,
 } from "@/lib/simulate";
 import { sanitizeOrder, useRankings } from "@/lib/useRankings";
-import { useLeague } from "@/lib/useLeague";
+import { useActiveLeague } from "@/lib/useLeague";
+import { rosterSize } from "@/lib/roster";
 import { useMounted } from "@/lib/useMounted";
 import type { Position } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
 import { POS_TEXT, PositionBadge } from "@/components/ui";
 
-const TEAM_OPTIONS = [8, 10, 12, 14];
-const ROUND_OPTIONS = [12, 15, 18];
 const RUN_OPTIONS = [50, 100, 250];
 const SLOT_RUNS = 25; // per seat, so a 12-team comparison is 300 drafts
 
@@ -24,10 +23,10 @@ export function SimulationLab() {
   const mounted = useMounted();
   const order = useRankings((s) => s.order);
   const tags = useRankings((s) => s.tags);
-  const scoring = useLeague((s) => s.scoring);
+  const league = useActiveLeague();
+  const teams = league.teams;
+  const rounds = rosterSize(league.slots);
 
-  const [teams, setTeams] = useState(12);
-  const [rounds, setRounds] = useState(15);
   const [slot, setSlot] = useState(6);
   const [runs, setRuns] = useState(100);
   const [result, setResult] = useState<SimulationResult | null>(null);
@@ -43,7 +42,8 @@ export function SimulationLab() {
       order: sanitizeOrder(order),
       teams,
       rounds,
-      scoring,
+      scoring: league.scoring,
+      slots: league.slots,
       runs,
       seed: 1,
     };
@@ -62,15 +62,13 @@ export function SimulationLab() {
   return (
     <div className="space-y-4">
       <section className="glass hud-corners space-y-4 rounded-xl p-4">
-        <Field label="Teams">
-          <Chips
-            options={TEAM_OPTIONS}
-            value={teams}
-            onChange={(n) => {
-              setTeams(n);
-              if (slot > n) setSlot(n);
-            }}
-          />
+        <Field label="League">
+          <div className="flex flex-wrap items-center gap-2">
+            <span className="font-display text-sm font-semibold">{league.name}</span>
+            <span className="text-xs text-mute">
+              {teams} teams · {SCORING_LABEL[league.scoring]} · {rounds} rounds
+            </span>
+          </div>
         </Field>
         <Field label="Your draft slot">
           <Chips
@@ -79,13 +77,10 @@ export function SimulationLab() {
             onChange={setSlot}
           />
         </Field>
-        <Field label="Roster size (rounds)">
-          <Chips options={ROUND_OPTIONS} value={rounds} onChange={setRounds} />
-        </Field>
         <Field label="Drafts to run">
           <Chips options={RUN_OPTIONS} value={runs} onChange={setRuns} />
           <p className="mt-1.5 text-xs text-mute">
-            Every run uses your board and {SCORING_LABEL[scoring]} scoring. Same settings,
+            Every run uses your board and {SCORING_LABEL[league.scoring]} scoring. Same settings,
             same answer — the AI draws from a seeded generator.
           </p>
         </Field>

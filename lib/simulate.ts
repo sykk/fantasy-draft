@@ -1,6 +1,7 @@
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { aiSelect } from "@/lib/ai";
-import { startingLineupPoints, teamForPick } from "@/lib/useDraft";
+import { startingLineupPoints, type RosterSlots } from "@/lib/roster";
+import { teamForPick } from "@/lib/useDraft";
 import type { Player, Position, Scoring } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
 
@@ -23,6 +24,7 @@ export interface SimulationConfig {
   rounds: number;
   slot: number; // 1-based
   scoring: Scoring;
+  slots: RosterSlots;
   runs: number;
   seed: number;
 }
@@ -141,7 +143,7 @@ export function simulate(config: SimulationConfig, targetIds: string[] = []): Si
     const roster = rosters[userTeam]
       .map((id) => PLAYER_BY_ID.get(id))
       .filter((p): p is Player => !!p);
-    totalPoints += startingLineupPoints(roster, config.scoring);
+    totalPoints += startingLineupPoints(roster, config.scoring, config.slots);
 
     const mine = new Set(rosters[userTeam]);
     for (const id of targetIds) {
@@ -190,7 +192,7 @@ export function compareSlots(config: Omit<SimulationConfig, "slot">): SlotStreng
       const roster = rosters[slot - 1]
         .map((id) => PLAYER_BY_ID.get(id))
         .filter((p): p is Player => !!p);
-      total += startingLineupPoints(roster, config.scoring);
+      total += startingLineupPoints(roster, config.scoring, config.slots);
     }
     return { slot, averagePoints: total / (config.runs || 1) };
   }).sort((a, b) => b.averagePoints - a.averagePoints);

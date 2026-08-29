@@ -1,5 +1,6 @@
-import { BYE_CLASH_THRESHOLD, FLEX_POSITIONS, FLEX_SLOTS, STARTERS } from "@/lib/roster";
+import { BYE_CLASH_THRESHOLD, FLEX_POSITIONS, type RosterSlots } from "@/lib/roster";
 import type { Player, Position } from "@/lib/types";
+import { POSITIONS } from "@/lib/types";
 import { teamForPick } from "@/lib/useDraft";
 import type { SlotKey } from "@/lib/useTiers";
 
@@ -28,6 +29,7 @@ export interface RecommendInput {
   overall: number;
   /** 0-based index of the user's next pick, or null when this is their last. */
   nextOverall: number | null;
+  slots: RosterSlots;
 }
 
 const LAST_OF_TIER = 12;
@@ -76,7 +78,7 @@ function reasonsFor(player: Player, input: RecommendInput): PickReason[] {
   const cliff = tierCliff(player, input);
   if (cliff) add(cliff.weight, cliff.text);
 
-  const need = rosterNeed(player, input.roster);
+  const need = rosterNeed(player, input.roster, input.slots);
   if (need) add(need.weight, need.text);
 
   const bye = byeClash(player, input.roster);
@@ -112,23 +114,27 @@ function tierCliff(player: Player, input: RecommendInput): PickReason | null {
   return null;
 }
 
-function rosterNeed(player: Player, roster: Player[]): PickReason | null {
+function rosterNeed(
+  player: Player,
+  roster: Player[],
+  slots: RosterSlots
+): PickReason | null {
   const have = countByPosition(roster);
   const starting = have[player.position];
 
-  if (starting < STARTERS[player.position]) {
+  if (starting < slots[player.position]) {
     return {
       weight: FILLS_STARTER,
-      text: `Fills your ${ORDINALS[starting]} ${player.position} slot`,
+      text: `Fills your ${ORDINALS[starting] ?? `${starting + 1}th`} ${player.position} slot`,
     };
   }
 
-  if (!FLEX_POSITIONS.includes(player.position)) return null;
-  const flexed = FLEX_POSITIONS.reduce(
-    (sum, pos) => sum + Math.max(0, have[pos] - STARTERS[pos]),
-    0
-  );
-  if (flexed < FLEX_SLOTS) return { weight: FILLS_FLEX, text: "Fills your flex" };
+  const flexable = slots.SUPERFLEX > 0 ? POSITIONS : FLEX_POSITIONS;
+  if (!flexable.includes(player.position)) return null;
+  const spare = flexable.reduce((sum, pos) => sum + Math.max(0, have[pos] - slots[pos]), 0);
+  if (spare < slots.FLEX + slots.SUPERFLEX) {
+    return { weight: FILLS_FLEX, text: "Fills your flex" };
+  }
   return null;
 }
 

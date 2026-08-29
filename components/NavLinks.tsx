@@ -11,6 +11,7 @@ const LINKS = [
   { href: "/mock", label: "Mock Draft" },
   { href: "/simulate", label: "Simulations" },
   { href: "/trade", label: "Trade Analyzer" },
+  { href: "/league", label: "League" },
 ];
 
 export function NavLinks({ vertical = false }: { vertical?: boolean }) {

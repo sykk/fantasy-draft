@@ -1,7 +1,8 @@
 import { describe, expect, test } from "vitest";
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { pointsFor } from "@/lib/scoring";
-import { gradeFor, startingLineupPoints, teamForPick } from "@/lib/useDraft";
+import { DEFAULT_SLOTS, startingLineupPoints } from "@/lib/roster";
+import { gradeFor, teamForPick } from "@/lib/useDraft";
 import type { DraftConfig, DraftPick, Player, Position } from "@/lib/types";
 
 const CONFIG: DraftConfig = {
@@ -9,6 +10,7 @@ const CONFIG: DraftConfig = {
   slot: 3,
   rounds: 15,
   scoring: "half-ppr",
+  slots: DEFAULT_SLOTS,
   timerSec: 30,
 };
 
@@ -65,21 +67,21 @@ describe("startingLineupPoints", () => {
       (sum, p) => sum + pointsFor(p, "half-ppr"),
       0
     );
-    expect(startingLineupPoints(roster, "half-ppr")).toBeCloseTo(expected, 5);
+    expect(startingLineupPoints(roster, "half-ppr", DEFAULT_SLOTS)).toBeCloseTo(expected, 5);
   });
 
   test("benches the worse player when a slot is oversubscribed", () => {
     const roster = [qb, ...rbs, ...wrs, te];
     const withScrub = [...roster, nth("RB", 40)];
-    expect(startingLineupPoints(withScrub, "half-ppr")).toBeCloseTo(
-      startingLineupPoints(roster, "half-ppr"),
+    expect(startingLineupPoints(withScrub, "half-ppr", DEFAULT_SLOTS)).toBeCloseTo(
+      startingLineupPoints(roster, "half-ppr", DEFAULT_SLOTS),
       5
     );
   });
 
   test("an empty slot contributes zero rather than throwing", () => {
-    expect(startingLineupPoints([], "half-ppr")).toBe(0);
-    expect(startingLineupPoints([qb], "half-ppr")).toBeCloseTo(
+    expect(startingLineupPoints([], "half-ppr", DEFAULT_SLOTS)).toBe(0);
+    expect(startingLineupPoints([qb], "half-ppr", DEFAULT_SLOTS)).toBeCloseTo(
       pointsFor(qb, "half-ppr"),
       5
     );
@@ -87,8 +89,8 @@ describe("startingLineupPoints", () => {
 
   test("the same roster is worth more in PPR than in standard", () => {
     const roster = [qb, ...rbs, ...wrs, te];
-    expect(startingLineupPoints(roster, "ppr")).toBeGreaterThan(
-      startingLineupPoints(roster, "standard")
+    expect(startingLineupPoints(roster, "ppr", DEFAULT_SLOTS)).toBeGreaterThan(
+      startingLineupPoints(roster, "standard", DEFAULT_SLOTS)
     );
   });
 });
@@ -107,7 +109,7 @@ describe("gradeFor", () => {
 
     expect(grade.projRank).toBe(1);
     expect(grade.grade).toBe("A");
-    expect(grade.totalProj).toBeCloseTo(startingLineupPoints(strong, "half-ppr"), 5);
+    expect(grade.totalProj).toBeCloseTo(startingLineupPoints(strong, "half-ppr", DEFAULT_SLOTS), 5);
     expect(grade.positionCounts).toEqual({ QB: 1, RB: 2, WR: 2, TE: 1 });
   });
 

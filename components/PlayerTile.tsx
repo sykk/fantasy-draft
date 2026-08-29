@@ -2,7 +2,7 @@
 
 import type { ReactNode } from "react";
 import { pointsFor } from "@/lib/scoring";
-import { useLeague } from "@/lib/useLeague";
+import { useScoring } from "@/lib/useLeague";
 import type { Player, PlayerTag } from "@/lib/types";
 import { DeltaBadge, PositionBadge, TagPill } from "@/components/ui";
 
@@ -29,7 +29,7 @@ export function PlayerTile({
   right,
   children,
 }: PlayerTileProps) {
-  const scoring = useLeague((s) => s.scoring);
+  const scoring = useScoring();
   return (
     <div
       className={`rounded-lg border border-line bg-panel transition-all duration-200 ease-out ${

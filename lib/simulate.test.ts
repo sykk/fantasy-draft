@@ -1,5 +1,6 @@
 import { describe, expect, test } from "vitest";
 import { PLAYERS } from "@/data/players";
+import { DEFAULT_SLOTS } from "@/lib/roster";
 import {
   compareSlots,
   picksForSlot,
@@ -18,6 +19,7 @@ function config(over: Partial<SimulationConfig> = {}): SimulationConfig {
     rounds: 8,
     slot: 3,
     scoring: "half-ppr",
+    slots: DEFAULT_SLOTS,
     runs: 5,
     seed: 1,
     ...over,

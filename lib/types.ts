@@ -1,3 +1,5 @@
+import type { RosterSlots } from "@/lib/roster";
+
 export type Position = "QB" | "RB" | "WR" | "TE";
 
 export type Scoring = "half-ppr" | "ppr" | "standard";
@@ -25,6 +27,7 @@ export interface DraftConfig {
   slot: number; // 1-based; user's draft position
   rounds: number;
   scoring: Scoring;
+  slots: RosterSlots;
   timerSec: number;
   /** AI opponents pick strictly from your rankings board — no jitter, no roster logic. */
   strictRankings?: boolean;

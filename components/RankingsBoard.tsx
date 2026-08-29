@@ -25,6 +25,7 @@ import type { Player, Position } from "@/lib/types";
 import { PlayerRankRow } from "@/components/PlayerRankRow";
 import { FilterBar, type PosFilter } from "@/components/FilterBar";
 import { PlayerDetailCard } from "@/components/PlayerDetailCard";
+import { BoardTransfer } from "@/components/BoardTransfer";
 import { POS_BORDER } from "@/components/ui";
 
 export function RankingsBoard() {
@@ -96,15 +97,18 @@ export function RankingsBoard() {
     <div className="space-y-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <FilterBar filter={filter} onFilter={setFilter} query={query} onQuery={setQuery} />
-        <button
-          type="button"
-          onClick={() => {
-            if (confirm("Reset your board back to default ADP order?")) resetToAdp();
-          }}
-          className="rounded-full border border-line px-3 py-1.5 text-sm text-mute transition-colors hover:border-down hover:text-down"
-        >
-          Reset to ADP
-        </button>
+        <div className="flex flex-wrap items-center gap-1.5">
+          <BoardTransfer />
+          <button
+            type="button"
+            onClick={() => {
+              if (confirm("Reset your board back to default ADP order?")) resetToAdp();
+            }}
+            className="rounded-full border border-line px-3 py-1.5 text-sm text-mute transition-colors hover:border-down hover:text-down"
+          >
+            Reset to ADP
+          </button>
+        </div>
       </div>
 
       {visible.length === 0 ? (

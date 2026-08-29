@@ -1,10 +1,11 @@
 import { describe, expect, test } from "vitest";
 import { normalizeHistoryEntry } from "@/lib/useDraft";
+import { DEFAULT_SLOTS } from "@/lib/roster";
 import type { DraftRecord } from "@/lib/types";
 
 const record: DraftRecord = {
   finishedAt: 1700000000000,
-  config: { teams: 10, slot: 4, rounds: 12, scoring: "ppr", timerSec: 30 },
+  config: { teams: 10, slot: 4, rounds: 12, scoring: "ppr", slots: DEFAULT_SLOTS, timerSec: 30 },
   picks: [{ overall: 0, round: 0, team: 3, playerId: "jahmyr-gibbs" }],
   projPoints: 1234.5,
   grade: "B+",
