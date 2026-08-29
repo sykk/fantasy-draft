@@ -2,23 +2,13 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-
-const LINKS = [
-  { href: "/rankings", label: "Rankings" },
-  { href: "/tiers", label: "Tier List" },
-  { href: "/stats", label: "Stats" },
-  { href: "/vegas", label: "Vegas" },
-  { href: "/mock", label: "Mock Draft" },
-  { href: "/simulate", label: "Simulations" },
-  { href: "/trade", label: "Trade Analyzer" },
-  { href: "/league", label: "League" },
-];
+import { SURFACES } from "@/lib/surfaces";
 
 export function NavLinks({ vertical = false }: { vertical?: boolean }) {
   const pathname = usePathname();
   return (
     <nav className={vertical ? "flex flex-col gap-1" : "flex items-center gap-1"}>
-      {LINKS.map(({ href, label }) => {
+      {SURFACES.map(({ href, label }) => {
         const active = pathname.startsWith(href);
         return (
           <Link
