@@ -1,11 +1,10 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { SCORINGS, SCORING_LABEL } from "@/lib/scoring";
-import { loadHistory, useDraft } from "@/lib/useDraft";
+import { useDraft } from "@/lib/useDraft";
 import { useLeague } from "@/lib/useLeague";
-import { useMounted } from "@/lib/useMounted";
-import type { DraftSummary } from "@/lib/types";
+import { DraftHistory } from "@/components/draft/DraftHistory";
 
 const TEAM_OPTIONS = [8, 10, 12, 14];
 const ROUND_OPTIONS = [12, 15, 18];
@@ -18,11 +17,6 @@ export function SetupScreen() {
   const [slot, setSlot] = useState<number | "random">("random");
   const [rounds, setRounds] = useState(15);
   const [strict, setStrict] = useState(false);
-  const mounted = useMounted();
-  const [history, setHistory] = useState<DraftSummary[]>([]);
-  useEffect(() => {
-    if (mounted) loadHistory().then(setHistory);
-  }, [mounted]);
 
   function handleStart() {
     const chosenSlot =
@@ -120,32 +114,7 @@ export function SetupScreen() {
         </button>
       </section>
 
-      {history.length > 0 && (
-        <section>
-          <h2 className="mb-2 font-display text-lg font-semibold tracking-wide text-mute">
-            RECENT DRAFTS
-          </h2>
-          <ul className="space-y-1.5">
-            {history.slice(0, 5).map((h) => (
-              <li
-                key={h.finishedAt}
-                className="flex items-center justify-between rounded-lg border border-line bg-panel px-3 py-2 text-sm"
-              >
-                <span className="text-mute">
-                  {new Date(h.finishedAt).toLocaleDateString()} · {h.teams} teams · slot{" "}
-                  {h.slot}
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="font-mono text-xs tabular-nums text-mute">
-                    {Math.round(h.projPoints)} pts
-                  </span>
-                  <span className="font-mono text-lg font-bold text-accent">{h.grade}</span>
-                </span>
-              </li>
-            ))}
-          </ul>
-        </section>
-      )}
+      <DraftHistory />
     </div>
   );
 }

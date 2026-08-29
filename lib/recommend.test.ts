@@ -7,9 +7,7 @@ let nextId = 0;
 function p(position: Position, over: Partial<Player> = {}): Player {
   const id = over.id ?? `p${nextId++}`;
   return {
-    id,
     name: id,
-    position,
     team: "SF",
     byeWeek: 14,
     adp: 200,
@@ -18,6 +16,7 @@ function p(position: Position, over: Partial<Player> = {}): Player {
     tier: 4,
     ...over,
     id,
+    position,
   };
 }
 

@@ -107,11 +107,12 @@ export interface PlayerProjection {
   recTD: number;
 }
 
-export interface DraftSummary {
+/** A finished draft, kept whole so it can be reopened and compared. Drafts
+ *  saved before the full pick list was stored have an empty `picks`. */
+export interface DraftRecord {
   finishedAt: number;
-  teams: number;
-  slot: number;
-  rounds: number;
+  config: DraftConfig;
+  picks: DraftPick[];
   projPoints: number;
   grade: string;
 }

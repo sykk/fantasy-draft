@@ -11,7 +11,7 @@ import { POSITIONS } from "@/lib/types";
 import type {
   DraftConfig,
   DraftPick,
-  DraftSummary,
+  DraftRecord,
   Player,
   Position,
   Scoring,
@@ -36,6 +36,7 @@ interface DraftState {
   pausedRemaining: number | null; // banked clock time while paused
 
   start: (config: DraftConfig) => void;
+  replay: (record: DraftRecord) => void;
   pause: () => void;
   resume: () => void;
   userPick: (playerId: string) => void;
@@ -112,6 +113,18 @@ export const useDraft = create<DraftState>()((set, get) => {
         pausedRemaining: null,
       });
     },
+
+    replay: (record) =>
+      set({
+        phase: "complete",
+        config: record.config,
+        picks: record.picks,
+        queue: [],
+        autoPick: false,
+        deadline: null,
+        paused: false,
+        pausedRemaining: null,
+      }),
 
     pause: () => {
       const { phase, paused, deadline } = get();
@@ -212,11 +225,41 @@ export const useDraft = create<DraftState>()((set, get) => {
 });
 
 const HISTORY_KEY = "draftlab-history";
+const HISTORY_LIMIT = 20;
 
-export async function loadHistory(): Promise<DraftSummary[]> {
+/** History as it was stored before drafts kept their config and picks. */
+interface LegacyEntry {
+  finishedAt: number;
+  teams: number;
+  slot: number;
+  rounds: number;
+  projPoints: number;
+  grade: string;
+}
+
+export function normalizeHistoryEntry(entry: DraftRecord | LegacyEntry): DraftRecord {
+  if ("config" in entry) return { ...entry, picks: entry.picks ?? [] };
+  return {
+    finishedAt: entry.finishedAt,
+    // Everything before this shape existed was graded as half-PPR.
+    config: {
+      teams: entry.teams,
+      slot: entry.slot,
+      rounds: entry.rounds,
+      scoring: "half-ppr",
+      timerSec: DEFAULT_CONFIG.timerSec,
+    },
+    picks: [],
+    projPoints: entry.projPoints,
+    grade: entry.grade,
+  };
+}
+
+export async function loadHistory(): Promise<DraftRecord[]> {
   try {
     const raw = await remoteStorage.getItem(HISTORY_KEY);
-    return raw ? JSON.parse(raw) : [];
+    if (!raw) return [];
+    return (JSON.parse(raw) as (DraftRecord | LegacyEntry)[]).map(normalizeHistoryEntry);
   } catch {
     return [];
   }
@@ -224,17 +267,19 @@ export async function loadHistory(): Promise<DraftSummary[]> {
 
 async function saveHistory(picks: DraftPick[], config: DraftConfig) {
   const grade = gradeFor(picks, config);
-  const entry: DraftSummary = {
+  const entry: DraftRecord = {
     finishedAt: Date.now(),
-    teams: config.teams,
-    slot: config.slot,
-    rounds: config.rounds,
+    config,
+    picks,
     projPoints: grade.totalProj,
     grade: grade.grade,
   };
   try {
     const existing = await loadHistory();
-    await remoteStorage.setItem(HISTORY_KEY, JSON.stringify([entry, ...existing].slice(0, 20)));
+    await remoteStorage.setItem(
+      HISTORY_KEY,
+      JSON.stringify([entry, ...existing].slice(0, HISTORY_LIMIT))
+    );
   } catch {
     // remote storage unavailable — history just isn't saved
   }
