@@ -22,6 +22,10 @@ export const ALL_TAGS: PlayerTag[] = ["TARGET", "AVOID", "VALUE", "SLEEPER"];
 
 export const POSITIONS: Position[] = ["QB", "RB", "WR", "TE"];
 
+/** How a draft gets its picks: "mock" lets the AI draft for the other teams,
+ *  "live" waits for the user to record every real-world selection by hand. */
+export type DraftMode = "mock" | "live";
+
 export interface DraftConfig {
   teams: number;
   slot: number; // 1-based; user's draft position
@@ -29,6 +33,8 @@ export interface DraftConfig {
   scoring: Scoring;
   slots: RosterSlots;
   timerSec: number;
+  /** Absent on drafts saved before live mode existed; those were all mocks. */
+  mode?: DraftMode;
   /** AI opponents pick strictly from your rankings board — no jitter, no roster logic. */
   strictRankings?: boolean;
 }

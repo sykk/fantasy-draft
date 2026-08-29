@@ -1,6 +1,8 @@
 import { describe, expect, test } from "vitest";
 import {
   DEFAULT_SLOTS,
+  benchOf,
+  fillLineup,
   rosterSize,
   startingLineup,
   startingLineupPoints,
@@ -101,5 +103,64 @@ describe("startingLineupPoints", () => {
 
   test("an empty roster is worth nothing rather than throwing", () => {
     expect(startingLineupPoints([], "ppr", DEFAULT_SLOTS)).toBe(0);
+  });
+});
+
+describe("fillLineup", () => {
+  test("lays the lineup out slot by slot in roster-sheet order", () => {
+    const qb = p("QB", 300);
+    const rbs = [p("RB", 250), p("RB", 240)];
+    const wrs = [p("WR", 230), p("WR", 220)];
+    const te = p("TE", 180);
+    const flex = p("RB", 200);
+
+    const lineup = fillLineup([qb, ...rbs, ...wrs, te, flex], "half-ppr", DEFAULT_SLOTS);
+
+    expect(lineup.map((entry) => entry.slot)).toEqual([
+      "QB",
+      "RB",
+      "RB",
+      "WR",
+      "WR",
+      "TE",
+      "FLEX",
+    ]);
+    expect(lineup.map((entry) => entry.player)).toEqual([qb, ...rbs, ...wrs, te, flex]);
+  });
+
+  test("slots the roster cannot fill come back empty rather than missing", () => {
+    const lineup = fillLineup([p("RB", 250)], "half-ppr", DEFAULT_SLOTS);
+
+    expect(lineup).toHaveLength(startingSize(DEFAULT_SLOTS));
+    expect(lineup.filter((entry) => entry.player)).toHaveLength(1);
+    expect(lineup.filter((entry) => !entry.player).map((entry) => entry.slot)).toEqual([
+      "QB",
+      "RB",
+      "WR",
+      "WR",
+      "TE",
+      "FLEX",
+    ]);
+  });
+
+  test("a superflex takes the best leftover at any position", () => {
+    const qbs = [p("QB", 300), p("QB", 290)];
+    const rb = p("RB", 250);
+    const lineup = fillLineup([...qbs, rb], "half-ppr", slots({ SUPERFLEX: 1, FLEX: 0 }));
+
+    expect(lineup.find((entry) => entry.slot === "SUPERFLEX")?.player).toBe(qbs[1]);
+  });
+});
+
+describe("benchOf", () => {
+  test("returns whoever the lineup could not fit", () => {
+    const starters = [p("QB", 300), p("RB", 250), p("RB", 240), p("WR", 230), p("WR", 220), p("TE", 180), p("RB", 200)];
+    const scrubs = [p("WR", 10), p("TE", 5)];
+
+    expect(benchOf([...starters, ...scrubs], "half-ppr", DEFAULT_SLOTS)).toEqual(scrubs);
+  });
+
+  test("a roster that cannot even fill its starters benches nobody", () => {
+    expect(benchOf([p("QB", 300)], "half-ppr", DEFAULT_SLOTS)).toEqual([]);
   });
 });

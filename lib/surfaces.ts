@@ -30,7 +30,8 @@ export const SURFACES: Surface[] = [
   {
     href: "/mock",
     label: "Mock Draft",
-    blurb: "Draft against AI teams, with a pick assistant explaining each suggestion.",
+    blurb:
+      "Draft against AI teams, or follow a real draft pick by pick, with an assistant explaining each suggestion.",
   },
   {
     href: "/simulate",

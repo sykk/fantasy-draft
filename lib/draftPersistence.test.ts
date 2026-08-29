@@ -80,6 +80,17 @@ describe("an in-progress draft", () => {
     expect(reloaded.getState().deadline).toBeNull();
   });
 
+  test("a live companion comes back ready to record — it has no clock to pause", async () => {
+    const first = await freshStore();
+    first.getState().start({ ...CONFIG, mode: "live" });
+    first.getState().recordPick("jahmyr-gibbs");
+
+    const reloaded = await freshStore();
+    expect(reloaded.getState().phase).toBe("drafting");
+    expect(reloaded.getState().paused).toBe(false);
+    expect(reloaded.getState().picks).toHaveLength(1);
+  });
+
   test("a finished draft is not resumed as paused", async () => {
     const staged = JSON.stringify({
       state: { phase: "complete", config: CONFIG, picks: [], queue: [], autoPick: false },
