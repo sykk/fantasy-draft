@@ -75,6 +75,11 @@ function HistoryRow({
         {new Date(record.finishedAt).toLocaleDateString()} · {record.config.teams} teams ·
         slot {record.config.slot} · {SCORING_LABEL[record.config.scoring]}
       </span>
+      {record.config.mode === "live" && (
+        <span className="rounded border border-accent2/40 bg-accent2/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-accent2">
+          live
+        </span>
+      )}
       {record.picks.length > 0 && (
         <span className="font-mono text-[11px] text-mute tabular-nums">
           {POSITIONS.map((pos) => `${counts[pos]}${pos}`).join(" ")}

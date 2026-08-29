@@ -6,25 +6,32 @@ import { rankMap, sanitizeOrder, useRankings } from "@/lib/useRankings";
 import { nextUserPick, recommendPicks, type Recommendation } from "@/lib/recommend";
 import { tierLookup, useTiers } from "@/lib/useTiers";
 import { teamForPick, useDraft } from "@/lib/useDraft";
-import type { Player, PlayerTag, Position } from "@/lib/types";
-import { POSITIONS } from "@/lib/types";
+import { useMediaQuery } from "@/lib/useMediaQuery";
+import type { Player, PlayerTag } from "@/lib/types";
 import { PlayerTile } from "@/components/PlayerTile";
 import { FilterBar, type PosFilter } from "@/components/FilterBar";
-import { POS_TEXT, PositionBadge } from "@/components/ui";
+import { PositionBadge } from "@/components/ui";
 import { DraftBoardGrid } from "@/components/draft/DraftBoardGrid";
+import { DraftStatusStrip } from "@/components/draft/DraftStatusStrip";
+import { RosterRail } from "@/components/draft/RosterRail";
 
 export function DraftRoom() {
   const { config, picks, phase, autoPick, setAutoPick, aiPickAt, autoPickUser, paused } =
     useDraft();
   const user = config.slot - 1;
+  const live = config.mode === "live";
   const overall = picks.length;
   const onClockTeam = teamForPick(overall, config.teams);
   const userOnClock = phase === "drafting" && onClockTeam === user;
   const round = Math.floor(overall / config.teams);
+  // Wide enough for the roster to stand beside the board instead of hiding
+  // behind a tab — with room left over for the board to keep its columns.
+  const railBesideBoard = useMediaQuery("(min-width: 1536px)");
 
-  // Drive AI picks (and instant auto-picks for the user).
+  // Drive AI picks (and instant auto-picks for the user). A live companion has
+  // no AI: every selection is recorded by hand.
   useEffect(() => {
-    if (phase !== "drafting" || paused) return;
+    if (phase !== "drafting" || paused || live) return;
     if (onClockTeam !== user) {
       const delay = config.strictRankings ? 250 : 400 + Math.random() * 400;
       const t = setTimeout(() => aiPickAt(overall), delay);
@@ -34,10 +41,13 @@ export function DraftRoom() {
       const t = setTimeout(() => autoPickUser(), 650);
       return () => clearTimeout(t);
     }
-  }, [phase, overall, onClockTeam, user, autoPick, paused, config.strictRankings, aiPickAt, autoPickUser]);
+  }, [phase, overall, onClockTeam, user, autoPick, paused, live, config.strictRankings, aiPickAt, autoPickUser]);
 
   return (
-    <div className="space-y-3">
+    // The draft room is the one screen that wants three columns at once, so on
+    // a wide display it reaches past the page width the rest of the app sits
+    // in. 140px a side is what the narrowest screen that gets here can spare.
+    <div className={`space-y-3 ${railBesideBoard ? "-mx-[140px]" : ""}`}>
       <StatusBar
         userOnClock={userOnClock}
         onClockTeam={onClockTeam}
@@ -45,13 +55,44 @@ export function DraftRoom() {
         overall={overall}
         autoPick={autoPick}
         onAutoPick={setAutoPick}
+        live={live}
       />
-      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_380px]">
+      <div
+        className={`grid gap-3 ${
+          railBesideBoard
+            ? "grid-cols-[minmax(0,1fr)_360px_240px]"
+            : "lg:grid-cols-[minmax(0,1fr)_380px]"
+        }`}
+      >
         <DraftBoardGrid />
-        <SidePanel userOnClock={userOnClock && !paused} />
+        <SidePanel showTeamTab={!railBesideBoard} />
+        {railBesideBoard && (
+          <aside className="glass max-h-[calc(100vh-13rem)] overflow-y-auto rounded-xl p-3">
+            <RosterRail />
+          </aside>
+        )}
       </div>
     </div>
   );
+}
+
+/** What clicking a player does right now. A mock only lets the user pick on
+ *  their own clock; a live companion records every team's selection. */
+interface PickControls {
+  canPick: boolean;
+  label: string;
+  pick: (playerId: string) => void;
+}
+
+function usePickControls(): PickControls {
+  const { phase, paused, config, picks, userPick, recordPick } = useDraft();
+  const live = config.mode === "live";
+  const userOnClock = teamForPick(picks.length, config.teams) === config.slot - 1;
+  return {
+    canPick: phase === "drafting" && (live ? true : userOnClock && !paused),
+    label: live ? (userOnClock ? "TO ME" : "TAKEN") : "DRAFT",
+    pick: live ? recordPick : userPick,
+  };
 }
 
 function StatusBar({
@@ -61,6 +102,7 @@ function StatusBar({
   overall,
   autoPick,
   onAutoPick,
+  live,
 }: {
   userOnClock: boolean;
   onClockTeam: number;
@@ -68,23 +110,32 @@ function StatusBar({
   overall: number;
   autoPick: boolean;
   onAutoPick: (on: boolean) => void;
+  live: boolean;
 }) {
   const config = useDraft((s) => s.config);
+  const picks = useDraft((s) => s.picks);
   const paused = useDraft((s) => s.paused);
   const pause = useDraft((s) => s.pause);
   const resume = useDraft((s) => s.resume);
   const reset = useDraft((s) => s.reset);
+  const undoPick = useDraft((s) => s.undoPick);
+  const lastPick = picks.length > 0 ? PLAYER_BY_ID.get(picks[picks.length - 1].playerId) : undefined;
   return (
     <div
-      className={`glass hud-corners sticky top-14 z-30 rounded-xl bg-[#0c0e16] px-3 py-2 transition-shadow duration-200 ${
+      className={`glass hud-corners sticky top-14 z-30 rounded-xl bg-[#0c0e16] transition-shadow duration-200 ${
         userOnClock && !paused ? "border-accent/50 glow-accent" : ""
       }`}
     >
-      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-1.5 px-3 py-2">
         <div className="font-mono text-xs font-semibold uppercase tracking-widest text-mute tabular-nums">
           RD {String(round + 1).padStart(2, "0")} · PK{" "}
           {String((overall % config.teams) + 1).padStart(2, "0")}
         </div>
+        {live && (
+          <span className="rounded border border-accent2/40 bg-accent2/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-accent2">
+            live
+          </span>
+        )}
         {config.strictRankings && (
           <span className="rounded border border-accent/30 bg-accent/10 px-1.5 py-0.5 font-mono text-[10px] font-semibold uppercase tracking-widest text-accent">
             strict
@@ -98,33 +149,51 @@ function StatusBar({
           <div className="text-glow font-display text-xl font-bold uppercase tracking-widest text-accent">
             Your pick
           </div>
+        ) : live ? (
+          <div className="font-display text-lg font-semibold text-fg/90">
+            Team {onClockTeam + 1} on the clock
+          </div>
         ) : (
           <div className="animate-clock-pulse font-display text-lg font-semibold text-fg/90">
             On the clock: Team {onClockTeam + 1}…
           </div>
         )}
         <div className="ml-auto flex items-center gap-3">
-          {userOnClock && <PickTimer />}
-          <label className="flex cursor-pointer items-center gap-1.5 text-xs text-mute">
-            <input
-              type="checkbox"
-              checked={autoPick}
-              onChange={(e) => onAutoPick(e.target.checked)}
-              className="h-4 w-4 accent-[#22d3ee]"
-            />
-            Auto-pick
-          </label>
-          <button
-            type="button"
-            onClick={() => (paused ? resume() : pause())}
-            className={`rounded-full border px-3 py-1 font-display text-xs font-semibold tracking-wide transition-colors ${
-              paused
-                ? "border-accent bg-accent text-ink hover:brightness-110"
-                : "border-line text-mute hover:border-accent hover:text-accent"
-            }`}
-          >
-            {paused ? "▶ RESUME" : "❚❚ PAUSE"}
-          </button>
+          {live ? (
+            <button
+              type="button"
+              onClick={undoPick}
+              disabled={picks.length === 0}
+              title={lastPick ? `Undo ${lastPick.name}` : undefined}
+              className="rounded-full border border-line px-3 py-1 font-display text-xs font-semibold tracking-wide text-mute transition-colors enabled:hover:border-accent enabled:hover:text-accent disabled:opacity-40"
+            >
+              ↶ UNDO
+            </button>
+          ) : (
+            <>
+              {userOnClock && <PickTimer />}
+              <label className="flex cursor-pointer items-center gap-1.5 text-xs text-mute">
+                <input
+                  type="checkbox"
+                  checked={autoPick}
+                  onChange={(e) => onAutoPick(e.target.checked)}
+                  className="h-4 w-4 accent-[#22d3ee]"
+                />
+                Auto-pick
+              </label>
+              <button
+                type="button"
+                onClick={() => (paused ? resume() : pause())}
+                className={`rounded-full border px-3 py-1 font-display text-xs font-semibold tracking-wide transition-colors ${
+                  paused
+                    ? "border-accent bg-accent text-ink hover:brightness-110"
+                    : "border-line text-mute hover:border-accent hover:text-accent"
+                }`}
+              >
+                {paused ? "▶ RESUME" : "❚❚ PAUSE"}
+              </button>
+            </>
+          )}
           <button
             type="button"
             onClick={() => {
@@ -136,6 +205,7 @@ function StatusBar({
           </button>
         </div>
       </div>
+      <DraftStatusStrip />
     </div>
   );
 }
@@ -213,48 +283,50 @@ function PickTimer() {
 
 type Tab = "players" | "queue" | "team";
 
-function SidePanel({ userOnClock }: { userOnClock: boolean }) {
+function SidePanel({ showTeamTab }: { showTeamTab: boolean }) {
   const [tab, setTab] = useState<Tab>("players");
   const queueLen = useDraft((s) => s.queue.length);
+  const controls = usePickControls();
+  // The roster moves out to its own rail on wide screens; fall back to the
+  // players list rather than showing an empty panel when it does.
+  const active = tab === "team" && !showTeamTab ? "players" : tab;
+  const tabs: [Tab, string][] = [
+    ["players", "Players"],
+    ["queue", `Queue${queueLen ? ` (${queueLen})` : ""}`],
+    ...(showTeamTab ? ([["team", "My Team"]] as [Tab, string][]) : []),
+  ];
   return (
-    <div className="glass flex max-h-[70vh] min-h-96 flex-col rounded-xl lg:max-h-[calc(100vh-11rem)]">
+    <div className="glass flex max-h-[70vh] min-h-96 flex-col rounded-xl lg:max-h-[calc(100vh-13rem)]">
       <div className="flex border-b border-line">
-        {(
-          [
-            ["players", "Players"],
-            ["queue", `Queue${queueLen ? ` (${queueLen})` : ""}`],
-            ["team", "My Team"],
-          ] as [Tab, string][]
-        ).map(([key, label]) => (
+        {tabs.map(([key, label]) => (
           <button
             key={key}
             type="button"
             onClick={() => setTab(key)}
             className={`flex-1 py-2.5 font-display text-sm font-semibold tracking-wide transition-colors ${
-              tab === key ? "border-b-2 border-accent text-accent" : "text-mute hover:text-fg"
+              active === key ? "border-b-2 border-accent text-accent" : "text-mute hover:text-fg"
             }`}
           >
             {label}
           </button>
         ))}
       </div>
-      <BestPicks userOnClock={userOnClock} />
+      <BestPicks controls={controls} />
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
-        {tab === "players" && <AvailableList userOnClock={userOnClock} />}
-        {tab === "queue" && <QueuePanel userOnClock={userOnClock} />}
-        {tab === "team" && <MyTeam />}
+        {active === "players" && <AvailableList controls={controls} />}
+        {active === "queue" && <QueuePanel controls={controls} />}
+        {active === "team" && <RosterRail />}
       </div>
     </div>
   );
 }
 
 /** The picks worth making right now, and why. */
-function BestPicks({ userOnClock }: { userOnClock: boolean }) {
+function BestPicks({ controls }: { controls: PickControls }) {
   const order = useRankings((s) => s.order);
   const boards = useTiers((s) => s.boards);
   const picks = useDraft((s) => s.picks);
   const config = useDraft((s) => s.config);
-  const userPick = useDraft((s) => s.userPick);
   const user = config.slot - 1;
 
   const picked = useMemo(
@@ -304,7 +376,8 @@ function BestPicks({ userOnClock }: { userOnClock: boolean }) {
             key={s.player.id}
             suggestion={s}
             best={i === 0}
-            onDraft={userOnClock ? () => userPick(s.player.id) : undefined}
+            label={controls.label}
+            onDraft={controls.canPick ? () => controls.pick(s.player.id) : undefined}
           />
         ))}
       </ul>
@@ -315,10 +388,12 @@ function BestPicks({ userOnClock }: { userOnClock: boolean }) {
 function SuggestionRow({
   suggestion,
   best,
+  label,
   onDraft,
 }: {
   suggestion: Recommendation;
   best: boolean;
+  label: string;
   onDraft?: () => void;
 }) {
   const { player, reasons } = suggestion;
@@ -337,7 +412,7 @@ function SuggestionRow({
             onClick={onDraft}
             className="shrink-0 rounded-md bg-accent px-2.5 py-1 font-display text-xs font-bold text-ink transition-transform hover:brightness-110 active:scale-95"
           >
-            DRAFT
+            {label}
           </button>
         )}
       </div>
@@ -355,7 +430,7 @@ function SuggestionRow({
   );
 }
 
-function AvailableList({ userOnClock }: { userOnClock: boolean }) {
+function AvailableList({ controls }: { controls: PickControls }) {
   const order = useRankings((s) => s.order);
   const tags = useRankings((s) => s.tags);
   const picks = useDraft((s) => s.picks);
@@ -385,7 +460,7 @@ function AvailableList({ userOnClock }: { userOnClock: boolean }) {
               player={p}
               rank={ranks.get(p.id) ?? p.adp}
               tags={tags[p.id] ?? []}
-              userOnClock={userOnClock}
+              controls={controls}
             />
           </li>
         ))}
@@ -401,16 +476,15 @@ function DraftablePlayer({
   player,
   rank,
   tags,
-  userOnClock,
+  controls,
 }: {
   player: Player;
   rank: number;
   tags: PlayerTag[];
-  userOnClock: boolean;
+  controls: PickControls;
 }) {
   const queue = useDraft((s) => s.queue);
   const queueToggle = useDraft((s) => s.queueToggle);
-  const userPick = useDraft((s) => s.userPick);
   const queued = queue.includes(player.id);
 
   return (
@@ -419,7 +493,7 @@ function DraftablePlayer({
       rank={rank}
       delta={player.adp - rank}
       tags={tags}
-      onClick={userOnClock ? () => userPick(player.id) : undefined}
+      onClick={controls.canPick ? () => controls.pick(player.id) : undefined}
       right={
         <>
           <button
@@ -435,16 +509,16 @@ function DraftablePlayer({
           >
             {queued ? "★" : "☆"}
           </button>
-          {userOnClock && (
+          {controls.canPick && (
             <button
               type="button"
               onClick={(e) => {
                 e.stopPropagation();
-                userPick(player.id);
+                controls.pick(player.id);
               }}
               className="rounded-md bg-accent px-3 py-1.5 font-display text-sm font-bold text-ink transition-transform hover:brightness-110 active:scale-95"
             >
-              DRAFT
+              {controls.label}
             </button>
           )}
         </>
@@ -453,11 +527,10 @@ function DraftablePlayer({
   );
 }
 
-function QueuePanel({ userOnClock }: { userOnClock: boolean }) {
+function QueuePanel({ controls }: { controls: PickControls }) {
   const queue = useDraft((s) => s.queue);
   const queueToggle = useDraft((s) => s.queueToggle);
   const queueMove = useDraft((s) => s.queueMove);
-  const userPick = useDraft((s) => s.userPick);
   const picks = useDraft((s) => s.picks);
   const drafted = useMemo(() => new Set(picks.map((p) => p.playerId)), [picks]);
 
@@ -518,13 +591,13 @@ function QueuePanel({ userOnClock }: { userOnClock: boolean }) {
               >
                 ✕
               </button>
-              {userOnClock && !gone && (
+              {controls.canPick && !gone && (
                 <button
                   type="button"
-                  onClick={() => userPick(id)}
+                  onClick={() => controls.pick(id)}
                   className="ml-1 rounded-md bg-accent px-2.5 py-1 font-display text-xs font-bold text-ink"
                 >
-                  DRAFT
+                  {controls.label}
                 </button>
               )}
             </div>
@@ -532,48 +605,5 @@ function QueuePanel({ userOnClock }: { userOnClock: boolean }) {
         );
       })}
     </ul>
-  );
-}
-
-function MyTeam() {
-  const picks = useDraft((s) => s.picks);
-  const config = useDraft((s) => s.config);
-  const user = config.slot - 1;
-  const mine = picks.filter((p) => p.team === user);
-
-  if (mine.length === 0) {
-    return <p className="px-3 py-8 text-center text-sm text-mute">No picks yet.</p>;
-  }
-
-  return (
-    <div className="space-y-3">
-      {POSITIONS.map((pos: Position) => {
-        const players = mine
-          .map((pk) => ({ pk, pl: PLAYER_BY_ID.get(pk.playerId) }))
-          .filter((x): x is { pk: (typeof mine)[number]; pl: Player } => !!x.pl)
-          .filter((x) => x.pl.position === pos);
-        if (players.length === 0) return null;
-        return (
-          <div key={pos}>
-            <div className={`mb-1 font-display text-sm font-bold ${POS_TEXT[pos]}`}>
-              {pos} <span className="text-mute">({players.length})</span>
-            </div>
-            <ul className="space-y-1">
-              {players.map(({ pk, pl }) => (
-                <li
-                  key={pl.id}
-                  className="flex items-center justify-between rounded-md bg-panel2 px-2.5 py-1.5 text-sm"
-                >
-                  <span className="truncate font-medium">{pl.name}</span>
-                  <span className="ml-2 shrink-0 text-xs text-mute tabular-nums">
-                    Rd {pk.round + 1} · {pl.team} · Bye {pl.byeWeek || "—"}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          </div>
-        );
-      })}
-    </div>
   );
 }

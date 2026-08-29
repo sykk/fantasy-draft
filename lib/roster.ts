@@ -38,15 +38,26 @@ export function rosterSize(slots: RosterSlots): number {
   return startingSize(slots) + slots.bench;
 }
 
+/** A slot in the weekly lineup, as it is labelled on a roster sheet. */
+export type LineupSlot = Position | "FLEX" | "SUPERFLEX";
+
+export interface LineupEntry {
+  slot: LineupSlot;
+  /** Null when the roster has nobody left to put here. */
+  player: Player | null;
+}
+
 /**
- * The best legal starting lineup these players can field, best-scoring first
- * at each position. Slots a roster cannot fill are simply left empty.
+ * The best legal starting lineup these players can field, slot by slot in
+ * roster-sheet order, best-scoring first at each position. Slots a roster
+ * cannot fill come back empty rather than missing, so a half-built roster can
+ * show what it still needs.
  */
-export function startingLineup(
+export function fillLineup(
   players: Player[],
   scoring: Scoring,
   slots: RosterSlots
-): Player[] {
+): LineupEntry[] {
   const byPos: Record<Position, Player[]> = { QB: [], RB: [], WR: [], TE: [] };
   for (const p of players) byPos[p.position].push(p);
   for (const pos of POSITIONS) {
@@ -54,25 +65,46 @@ export function startingLineup(
   }
 
   const used = new Set<string>();
-  const starters: Player[] = [];
+  const lineup: LineupEntry[] = [];
 
-  const take = (from: Position[], count: number) => {
+  const take = (slot: LineupSlot, from: Position[], count: number) => {
     for (let i = 0; i < count; i++) {
-      const best = from
-        .flatMap((pos) => byPos[pos])
-        .filter((p) => !used.has(p.id))
-        .sort((a, b) => pointsFor(b, scoring) - pointsFor(a, scoring))[0];
-      if (!best) return;
-      used.add(best.id);
-      starters.push(best);
+      const best =
+        from
+          .flatMap((pos) => byPos[pos])
+          .filter((p) => !used.has(p.id))
+          .sort((a, b) => pointsFor(b, scoring) - pointsFor(a, scoring))[0] ?? null;
+      if (best) used.add(best.id);
+      lineup.push({ slot, player: best });
     }
   };
 
-  for (const pos of POSITIONS) take([pos], slots[pos]);
-  take(FLEX_POSITIONS, slots.FLEX);
-  take(POSITIONS, slots.SUPERFLEX);
+  for (const pos of POSITIONS) take(pos, [pos], slots[pos]);
+  take("FLEX", FLEX_POSITIONS, slots.FLEX);
+  take("SUPERFLEX", POSITIONS, slots.SUPERFLEX);
 
-  return starters;
+  return lineup;
+}
+
+/** Just the players who made the lineup, empty slots dropped. */
+export function startingLineup(
+  players: Player[],
+  scoring: Scoring,
+  slots: RosterSlots
+): Player[] {
+  return fillLineup(players, scoring, slots)
+    .map((entry) => entry.player)
+    .filter((p): p is Player => !!p);
+}
+
+/** The rostered players the lineup could not fit — everyone on the bench. */
+export function benchOf(
+  players: Player[],
+  scoring: Scoring,
+  slots: RosterSlots
+): Player[] {
+  const starting = new Set(startingLineup(players, scoring, slots).map((p) => p.id));
+  return players.filter((p) => !starting.has(p.id));
 }
 
 export function startingLineupPoints(

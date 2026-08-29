@@ -39,6 +39,8 @@ interface DraftState {
   pause: () => void;
   resume: () => void;
   userPick: (playerId: string) => void;
+  recordPick: (playerId: string) => void;
+  undoPick: () => void;
   aiPickAt: (expectedOverall: number) => void;
   autoPickUser: () => void;
   queueToggle: (playerId: string) => void;
@@ -56,8 +58,9 @@ const DEFAULT_CONFIG: DraftConfig = {
   timerSec: 30,
 };
 
-/** A draft picked back up after a reload starts paused, so nobody loses a pick
- *  to a clock they never saw running. */
+/** A mock picked back up after a reload starts paused, so nobody loses a pick
+ *  to a clock they never saw running. A live companion has no clock to lose a
+ *  pick to, and pausing it would only block the next selection. */
 const RESUMED_PAUSED = {
   paused: true,
   deadline: null,
@@ -89,7 +92,9 @@ export const useDraft = create<DraftState>()(
         const total = config.teams * config.rounds;
         const done = nextPicks.length >= total;
         const nextIsUser =
-          !done && teamForPick(nextPicks.length, config.teams) === userTeamIndex();
+          !done &&
+          config.mode !== "live" &&
+          teamForPick(nextPicks.length, config.teams) === userTeamIndex();
 
         set({
           picks: nextPicks,
@@ -111,7 +116,8 @@ export const useDraft = create<DraftState>()(
         pausedRemaining: null,
 
         start: (config) => {
-          const firstIsUser = teamForPick(0, config.teams) === config.slot - 1;
+          const firstIsUser =
+            config.mode !== "live" && teamForPick(0, config.teams) === config.slot - 1;
           set({
             phase: "drafting",
             config,
@@ -162,6 +168,22 @@ export const useDraft = create<DraftState>()(
       if (teamForPick(picks.length, config.teams) !== userTeamIndex()) return;
       if (draftedIds().has(playerId)) return;
       applyPick(playerId);
+    },
+
+    // Live companion: the user reads every selection off somebody else's draft
+    // board, so any player can be recorded against whichever team is on the
+    // clock — their own seat included.
+    recordPick: (playerId) => {
+      const { phase, config } = get();
+      if (config.mode !== "live" || phase !== "drafting") return;
+      if (draftedIds().has(playerId)) return;
+      applyPick(playerId);
+    },
+
+    undoPick: () => {
+      const { config, picks } = get();
+      if (config.mode !== "live" || picks.length === 0) return;
+      set({ phase: "drafting", picks: picks.slice(0, -1), deadline: null });
     },
 
     aiPickAt: (expectedOverall) => {
@@ -258,7 +280,8 @@ export const useDraft = create<DraftState>()(
       // yet to be written to.
       merge: (persisted, current) => {
         const restored = { ...current, ...(persisted as Partial<DraftState>) };
-        return restored.phase === "drafting" ? { ...restored, ...RESUMED_PAUSED } : restored;
+        const resumable = restored.phase === "drafting" && restored.config.mode !== "live";
+        return resumable ? { ...restored, ...RESUMED_PAUSED } : restored;
       },
     }
   )
@@ -289,6 +312,7 @@ export function normalizeHistoryEntry(entry: DraftRecord | LegacyEntry): DraftRe
       scoring: "half-ppr",
       slots: DEFAULT_SLOTS,
       timerSec: DEFAULT_CONFIG.timerSec,
+      mode: "mock",
     },
     picks: [],
     projPoints: entry.projPoints,
