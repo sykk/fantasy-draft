@@ -7,7 +7,8 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint",
-    "fetch-data": "node scripts/fetch-stats.mjs"
+    "fetch-data": "node scripts/fetch-stats.mjs",
+    "fetch-projections": "node scripts/fetch-projections.mjs"
   },
   "dependencies": {
     "@dnd-kit/core": "^6.3.1",

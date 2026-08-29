@@ -75,6 +75,35 @@ export interface PlayerStats {
   yardsPerReception: number;
 }
 
+/** One player's projected season line for the upcoming season, summed from
+ *  Sleeper's weekly projections (data/player-projections.json). */
+export interface PlayerProjection {
+  id: string; // Sleeper player_id — same id space as PlayerStats.id
+  name: string;
+  position: Position;
+  team: string;
+
+  gamesPlayed: number; // projected games (fractional — reflects injury/role risk)
+
+  fantasyPointsPPR: number;
+  fantasyPointsHalf: number;
+
+  passAttempts: number;
+  completions: number;
+  passYards: number;
+  passTD: number;
+  interceptions: number;
+
+  rushAttempts: number;
+  rushYards: number;
+  rushTD: number;
+
+  targets: number;
+  receptions: number;
+  recYards: number;
+  recTD: number;
+}
+
 export interface DraftSummary {
   finishedAt: number;
   teams: number;
