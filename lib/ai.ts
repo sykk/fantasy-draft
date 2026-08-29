@@ -1,8 +1,14 @@
-import type { Player, Position } from "@/lib/types";
+import { pointsFor } from "@/lib/scoring";
+import type { Player, Position, Scoring } from "@/lib/types";
 
 // Roster shape the AI drafts toward (typical best-ball-ish build).
 const TARGETS: Record<Position, number> = { QB: 2, RB: 5, WR: 6, TE: 2 };
 const HARD_CAPS: Record<Position, number> = { QB: 3, RB: 8, WR: 9, TE: 3 };
+
+// How many draft picks a point of format-driven projection is worth. Small
+// on purpose: the AI still drafts near ADP, it just doesn't ignore that PPR
+// makes a pass-catching back worth more than the half-PPR market says.
+const PICKS_PER_POINT = 0.25;
 
 /**
  * Pick for an AI team: roughly by ADP with a little jitter, nudged by
@@ -13,15 +19,22 @@ export function aiSelect(
   available: Player[],
   counts: Record<Position, number>,
   round: number, // 0-based
-  totalRounds: number
+  totalRounds: number,
+  scoring: Scoring
 ): Player {
   const pool = available.slice(0, 14);
   const roundsLeft = totalRounds - round;
 
+  // ADP is a half-PPR market, so in PPR/standard a player is worth reaching
+  // for (or fading) by however much the format moves them relative to the
+  // rest of the pool they're competing against.
+  const deltas = pool.map((p) => pointsFor(p, scoring) - p.projPoints);
+  const avgDelta = deltas.reduce((sum, d) => sum + d, 0) / (pool.length || 1);
+
   let best = pool[0];
   let bestScore = Infinity;
-  for (const p of pool) {
-    let score = p.adp + (Math.random() * 6 - 3);
+  for (const [i, p] of pool.entries()) {
+    let score = p.adp + (Math.random() * 6 - 3) - (deltas[i] - avgDelta) * PICKS_PER_POINT;
     const have = counts[p.position];
 
     if (have >= HARD_CAPS[p.position]) score += 500;

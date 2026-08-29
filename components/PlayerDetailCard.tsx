@@ -1,6 +1,8 @@
 "use client";
 
 import Link from "next/link";
+import { pointsFor } from "@/lib/scoring";
+import { useLeague } from "@/lib/useLeague";
 import { useRankings } from "@/lib/useRankings";
 import { POS_RANK_BY_SEASON, statsForAppPlayer } from "@/lib/stats";
 import type { Player } from "@/lib/types";
@@ -14,6 +16,7 @@ export function PlayerDetailCard({ player }: { player: Player }) {
   const toggleTag = useRankings((s) => s.toggleTag);
   const setNote = useRankings((s) => s.setNote);
   const lastSeason = statsForAppPlayer(player.id);
+  const scoring = useLeague((s) => s.scoring);
 
   return (
     <div className="space-y-3 px-3 py-3">
@@ -37,7 +40,7 @@ export function PlayerDetailCard({ player }: { player: Player }) {
       )}
       <dl className="grid grid-cols-4 gap-2 text-center">
         {[
-          ["Proj", `${player.projPoints}`],
+          ["Proj", `${Math.round(pointsFor(player, scoring))}`],
           ["ADP", `${player.adp}`],
           ["Bye", player.byeWeek ? `${player.byeWeek}` : "—"],
           ["Tier", `${player.tier}`],

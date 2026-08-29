@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useMemo } from "react";
 import { PLAYER_BY_ID } from "@/data/players";
+import { pointsFor } from "@/lib/scoring";
 import { gradeFor, useDraft } from "@/lib/useDraft";
 import type { Player, Position } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
@@ -126,7 +127,8 @@ export function Results() {
                     </span>
                     <PositionBadge position={player.position} team={player.team} />
                     <span className="hidden shrink-0 text-xs text-mute tabular-nums sm:inline">
-                      {player.projPoints} pts · Bye {player.byeWeek || "—"}
+                      {Math.round(pointsFor(player, config.scoring))} pts · Bye{" "}
+                      {player.byeWeek || "—"}
                     </span>
                   </li>
                 ))}

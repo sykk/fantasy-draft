@@ -1,3 +1,5 @@
+import { nameKey } from "@/lib/nameMatch";
+import { PROJECTIONS } from "@/lib/projections";
 import type { Player, Position } from "@/lib/types";
 
 // Seed board: Underdog Best Ball ADP top 300, captured 2026-07-08 from
@@ -353,6 +355,14 @@ function slugify(name: string): string {
   return name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/(^-|-$)/g, "");
 }
 
+// Underdog publishes a points total but no catch volume, so receptions come
+// from Sleeper's projections. A handful of seed players (mostly QBs, plus a
+// few deep-board WRs Sleeper has no projection for) fall through to 0, which
+// leaves their points identical in every scoring format.
+const RECEPTIONS = new Map(
+  PROJECTIONS.map((p) => [nameKey(p.name, p.position), p.receptions])
+);
+
 const TIERS = computeTiers();
 const usedIds = new Set<string>();
 
@@ -368,6 +378,7 @@ export const PLAYERS: Player[] = SEED.map(([name, position, team, projPoints], i
     byeWeek: TEAM_BYES[team] ?? 9,
     adp: i + 1,
     projPoints,
+    projReceptions: RECEPTIONS.get(nameKey(name, position)) ?? 0,
     tier: TIERS.get(i) ?? 8,
   };
 });

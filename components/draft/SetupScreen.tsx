@@ -1,20 +1,22 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { SCORINGS, SCORING_LABEL } from "@/lib/scoring";
 import { loadHistory, useDraft } from "@/lib/useDraft";
+import { useLeague } from "@/lib/useLeague";
 import { useMounted } from "@/lib/useMounted";
 import type { DraftSummary } from "@/lib/types";
 
 const TEAM_OPTIONS = [8, 10, 12, 14];
 const ROUND_OPTIONS = [12, 15, 18];
-const SCORING_OPTIONS = ["half-ppr", "ppr", "standard"] as const;
 
 export function SetupScreen() {
   const start = useDraft((s) => s.start);
+  const scoring = useLeague((s) => s.scoring);
+  const setScoring = useLeague((s) => s.setScoring);
   const [teams, setTeams] = useState(12);
   const [slot, setSlot] = useState<number | "random">("random");
   const [rounds, setRounds] = useState(15);
-  const [scoring, setScoring] = useState<(typeof SCORING_OPTIONS)[number]>("half-ppr");
   const [strict, setStrict] = useState(false);
   const mounted = useMounted();
   const [history, setHistory] = useState<DraftSummary[]>([]);
@@ -97,12 +99,16 @@ export function SetupScreen() {
 
         <Field label="Scoring">
           <div className="flex gap-1.5">
-            {SCORING_OPTIONS.map((s) => (
+            {SCORINGS.map((s) => (
               <Chip key={s} active={scoring === s} onClick={() => setScoring(s)}>
-                {s === "half-ppr" ? "Half PPR" : s === "ppr" ? "PPR" : "Standard"}
+                {SCORING_LABEL[s]}
               </Chip>
             ))}
           </div>
+          <p className="mt-1.5 text-xs text-mute">
+            Sets the format everywhere — projections on your board, the trade
+            analyzer, and how the AI values pass-catchers.
+          </p>
         </Field>
 
         <button

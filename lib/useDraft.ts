@@ -5,8 +5,16 @@ import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { aiSelect } from "@/lib/ai";
 import { remoteStorage } from "@/lib/remoteStorage";
 import { sanitizeOrder, useRankings } from "@/lib/useRankings";
+import { pointsFor } from "@/lib/scoring";
 import { POSITIONS } from "@/lib/types";
-import type { DraftConfig, DraftPick, DraftSummary, Player, Position } from "@/lib/types";
+import type {
+  DraftConfig,
+  DraftPick,
+  DraftSummary,
+  Player,
+  Position,
+  Scoring,
+} from "@/lib/types";
 
 export type DraftPhase = "setup" | "drafting" | "complete";
 
@@ -154,7 +162,7 @@ export const useDraft = create<DraftState>()((set, get) => {
         if (pl) counts[pl.position] += 1;
       }
       const round = Math.floor(expectedOverall / config.teams);
-      const choice = aiSelect(availableByAdp(), counts, round, config.rounds);
+      const choice = aiSelect(availableByAdp(), counts, round, config.rounds, config.scoring);
       applyPick(choice.id);
     },
 
@@ -248,7 +256,7 @@ export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
     const player = PLAYER_BY_ID.get(pk.playerId);
     if (player) teamPlayers[pk.team].push(player);
   }
-  const totals = teamPlayers.map((players) => startingLineupPoints(players));
+  const totals = teamPlayers.map((players) => startingLineupPoints(players, config.scoring));
 
   const user = config.slot - 1;
   const totalProj = totals[user];
@@ -286,14 +294,16 @@ export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
 }
 
 /**
- * Sum of projPoints for the best starting lineup among these players:
- * 1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX (best remaining RB/WR/TE). A missing
+ * Points for the best starting lineup among these players in this scoring
+ * format: 1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX (best remaining RB/WR/TE). A missing
  * position just contributes 0 for that slot — never throws.
  */
-function startingLineupPoints(players: Player[]): number {
+export function startingLineupPoints(players: Player[], scoring: Scoring): number {
   const byPos: Record<Position, Player[]> = { QB: [], RB: [], WR: [], TE: [] };
   for (const p of players) byPos[p.position].push(p);
-  for (const pos of POSITIONS) byPos[pos].sort((a, b) => b.projPoints - a.projPoints);
+  for (const pos of POSITIONS) {
+    byPos[pos].sort((a, b) => pointsFor(b, scoring) - pointsFor(a, scoring));
+  }
 
   const starters: Player[] = [
     ...byPos.QB.slice(0, 1),
@@ -303,11 +313,11 @@ function startingLineupPoints(players: Player[]): number {
   ];
 
   const flexPool = [...byPos.RB.slice(2), ...byPos.WR.slice(2), ...byPos.TE.slice(1)].sort(
-    (a, b) => b.projPoints - a.projPoints
+    (a, b) => pointsFor(b, scoring) - pointsFor(a, scoring)
   );
   starters.push(...flexPool.slice(0, 1));
 
-  return starters.reduce((sum, p) => sum + p.projPoints, 0);
+  return starters.reduce((sum, p) => sum + pointsFor(p, scoring), 0);
 }
 
 /** Worst bye-week collision in the roster (3+ players sharing a week), or null. Ties go to the lower week number. */

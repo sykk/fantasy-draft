@@ -1,5 +1,7 @@
 export type Position = "QB" | "RB" | "WR" | "TE";
 
+export type Scoring = "half-ppr" | "ppr" | "standard";
+
 export interface Player {
   id: string;
   name: string;
@@ -8,6 +10,7 @@ export interface Player {
   byeWeek: number;
   adp: number; // baseline average draft position (the default ranking)
   projPoints: number; // season projection, half-PPR
+  projReceptions: number; // projected catches, used to re-score for PPR/standard
   tier: number; // positional tier 1-8
 }
 
@@ -21,7 +24,7 @@ export interface DraftConfig {
   teams: number;
   slot: number; // 1-based; user's draft position
   rounds: number;
-  scoring: "half-ppr" | "ppr" | "standard";
+  scoring: Scoring;
   timerSec: number;
   /** AI opponents pick strictly from your rankings board — no jitter, no roster logic. */
   strictRankings?: boolean;

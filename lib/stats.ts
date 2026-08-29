@@ -1,5 +1,6 @@
 import statsJson from "@/data/player-stats.json";
 import { PLAYERS } from "@/data/players";
+import { nameKey } from "@/lib/nameMatch";
 import type { PlayerStats } from "@/lib/types";
 
 export const SEASONS: number[] = statsJson.seasons;
@@ -39,25 +40,18 @@ export function latestRecordForId(id: string): PlayerStats | undefined {
 
 // ---- linking to the app's seed players (rankings/tiers use name-slug ids) ----
 
-function normalizeName(name: string): string {
-  return name
-    .toLowerCase()
-    .replace(/\s+(jr|sr|ii|iii|iv|v)\.?$/i, "")
-    .replace(/[^a-z]/g, "");
-}
-
 // Oldest season first, so each name+position key ends up holding that
 // player's most recent season's record (later seasons overwrite earlier).
 const statsByNamePos = new Map<string, PlayerStats>();
 for (const season of SEASONS) {
   for (const s of STATS_BY_SEASON[season]) {
-    statsByNamePos.set(`${normalizeName(s.name)}|${s.position}`, s);
+    statsByNamePos.set(nameKey(s.name, s.position), s);
   }
 }
 
 const appIdToStats = new Map<string, PlayerStats>();
 for (const p of PLAYERS) {
-  const match = statsByNamePos.get(`${normalizeName(p.name)}|${p.position}`);
+  const match = statsByNamePos.get(nameKey(p.name, p.position));
   if (match) appIdToStats.set(p.id, match);
 }
 

@@ -1,5 +1,6 @@
 import { PLAYER_BY_ID } from "@/data/players";
-import type { Player } from "@/lib/types";
+import { pointsFor } from "@/lib/scoring";
+import type { Player, Scoring } from "@/lib/types";
 
 export interface TradeSideSummary {
   playerIds: string[];
@@ -17,11 +18,11 @@ export interface TradeResult {
   edgePct: number; // abs(diff) / combined total; 0 when either side is empty
 }
 
-function summarizeSide(playerIds: string[]): TradeSideSummary {
+function summarizeSide(playerIds: string[], scoring: Scoring): TradeSideSummary {
   const players = playerIds
     .map((id) => PLAYER_BY_ID.get(id))
     .filter((p): p is Player => !!p);
-  const totalProj = players.reduce((sum, p) => sum + p.projPoints, 0);
+  const totalProj = players.reduce((sum, p) => sum + pointsFor(p, scoring), 0);
   const avgAdp =
     players.length > 0
       ? players.reduce((sum, p) => sum + p.adp, 0) / players.length
@@ -35,9 +36,13 @@ function summarizeSide(playerIds: string[]): TradeSideSummary {
  * than it gave up (diff > 0 means Side B's total exceeds Side A's, i.e.
  * Side A comes out ahead).
  */
-export function evaluateTrade(sideAIds: string[], sideBIds: string[]): TradeResult {
-  const sideA = summarizeSide(sideAIds);
-  const sideB = summarizeSide(sideBIds);
+export function evaluateTrade(
+  sideAIds: string[],
+  sideBIds: string[],
+  scoring: Scoring
+): TradeResult {
+  const sideA = summarizeSide(sideAIds, scoring);
+  const sideB = summarizeSide(sideBIds, scoring);
   const combined = sideA.totalProj + sideB.totalProj;
   const diff = sideB.totalProj - sideA.totalProj;
   const bothSidesFilled = sideA.count > 0 && sideB.count > 0;

@@ -1,6 +1,8 @@
 "use client";
 
 import type { ReactNode } from "react";
+import { pointsFor } from "@/lib/scoring";
+import { useLeague } from "@/lib/useLeague";
 import type { Player, PlayerTag } from "@/lib/types";
 import { DeltaBadge, PositionBadge, TagPill } from "@/components/ui";
 
@@ -27,6 +29,7 @@ export function PlayerTile({
   right,
   children,
 }: PlayerTileProps) {
+  const scoring = useLeague((s) => s.scoring);
   return (
     <div
       className={`rounded-lg border border-line bg-panel transition-all duration-200 ease-out ${
@@ -59,7 +62,7 @@ export function PlayerTile({
               Bye {player.byeWeek || "—"}
             </span>
             <span className="font-mono text-[11px] whitespace-nowrap tabular-nums">
-              {player.projPoints} pts
+              {Math.round(pointsFor(player, scoring))} pts
             </span>
           </div>
         </div>
