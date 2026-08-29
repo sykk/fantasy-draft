@@ -42,20 +42,30 @@ export function TradeSide({
         </p>
       ) : (
         <ul className="space-y-1.5">
-          {summary.players.map((p) => (
-            <li key={p.id}>
+          {summary.players.map(({ player, value }) => (
+            <li key={player.id}>
               <PlayerTile
-                player={p}
-                rank={p.adp}
+                player={player}
+                rank={player.adp}
                 right={
-                  <button
-                    type="button"
-                    aria-label={`Remove ${p.name}`}
-                    onClick={() => onRemove(p.id)}
-                    className="rounded-md px-2 py-2 text-mute hover:bg-panel2 hover:text-down"
-                  >
-                    ×
-                  </button>
+                  <>
+                    <span
+                      title="Points above the best player you could start off waivers"
+                      className={`shrink-0 font-mono text-xs font-semibold tabular-nums ${
+                        value > 0 ? "text-fg" : "text-mute"
+                      }`}
+                    >
+                      {value > 0 ? `+${Math.round(value)}` : "0"}
+                    </span>
+                    <button
+                      type="button"
+                      aria-label={`Remove ${player.name}`}
+                      onClick={() => onRemove(player.id)}
+                      className="rounded-md px-2 py-2 text-mute hover:bg-panel2 hover:text-down"
+                    >
+                      ×
+                    </button>
+                  </>
                 }
               />
             </li>
@@ -67,7 +77,9 @@ export function TradeSide({
         <span>
           {summary.count} player{summary.count === 1 ? "" : "s"}
         </span>
-        <span className="tabular-nums">{summary.totalProj.toFixed(1)} pts</span>
+        <span className="tabular-nums">
+          {Math.round(summary.totalValue)} value · {Math.round(summary.totalProj)} pts
+        </span>
       </div>
     </div>
   );

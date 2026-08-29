@@ -9,7 +9,9 @@ export default function TradePage() {
       <header>
         <h1 className="font-display text-4xl font-bold tracking-wide">TRADE ANALYZER</h1>
         <p className="mt-1 text-sm text-mute">
-          Build both sides of a trade and see who comes out ahead by projected points.
+          Build both sides of a trade and see who comes out ahead — judged on what
+          each player adds above the best starter you could pick up for free, not on
+          raw projected points.
         </p>
       </header>
       <TradeAnalyzer />

@@ -2,7 +2,7 @@
 
 import { useMemo, useState } from "react";
 import { evaluateTrade } from "@/lib/trade";
-import { useScoring } from "@/lib/useLeague";
+import { useActiveLeague } from "@/lib/useLeague";
 import { TradeSide } from "@/components/trade/TradeSide";
 import { TradeVerdict } from "@/components/trade/TradeVerdict";
 
@@ -10,10 +10,10 @@ export function TradeAnalyzer() {
   const [sideA, setSideA] = useState<string[]>([]);
   const [sideB, setSideB] = useState<string[]>([]);
 
-  const scoring = useScoring();
+  const league = useActiveLeague();
   const result = useMemo(
-    () => evaluateTrade(sideA, sideB, scoring),
-    [sideA, sideB, scoring]
+    () => evaluateTrade(sideA, sideB, league),
+    [sideA, sideB, league]
   );
   const excludeAll = useMemo(() => new Set([...sideA, ...sideB]), [sideA, sideB]);
 

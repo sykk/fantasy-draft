@@ -1,7 +1,7 @@
 import type { TradeResult } from "@/lib/trade";
 
 export function TradeVerdict({ result }: { result: TradeResult }) {
-  const { sideA, sideB, diff, winner, edgePct } = result;
+  const { sideA, sideB, diff, winner, edgePct, pointsMislead } = result;
 
   if (sideA.count === 0 || sideB.count === 0) {
     return (
@@ -11,10 +11,20 @@ export function TradeVerdict({ result }: { result: TradeResult }) {
     );
   }
 
+  // Which pile projects more raw points — not the same thing as which side
+  // wins the trade, since the winner is whoever receives the better pile.
+  const aIsHeavier = sideA.totalProj >= sideB.totalProj;
+  const heavier = aIsHeavier
+    ? { label: "Side A", side: sideA }
+    : { label: "Side B", side: sideB };
+  const lighter = aIsHeavier
+    ? { label: "Side B", side: sideB }
+    : { label: "Side A", side: sideA };
+
   const isFair = edgePct < 0.05;
-  const verdictText = isFair
+  const verdict = isFair
     ? "Fair trade"
-    : `Side ${winner} comes out ahead by ${Math.abs(diff).toFixed(1)} pts (${(edgePct * 100).toFixed(0)}% edge)`;
+    : `Side ${winner} comes out ahead by ${Math.abs(Math.round(diff))} value (${Math.round(edgePct * 100)}% edge)`;
 
   return (
     <div className="glass space-y-3 rounded-xl p-4 text-center">
@@ -23,23 +33,34 @@ export function TradeVerdict({ result }: { result: TradeResult }) {
           isFair ? "text-accent" : "text-up"
         }`}
       >
-        {verdictText}
+        {verdict}
       </div>
+
+      {pointsMislead && (
+        <p className="mx-auto max-w-md text-xs leading-snug text-mute">
+          {heavier.label} projects {Math.round(Math.abs(result.pointsDiff))} more raw
+          points, but nearly all of it is replaceable: those players add{" "}
+          {Math.round(heavier.side.totalValue)} above a freely available starter, against{" "}
+          {Math.round(lighter.side.totalValue)} on {lighter.label}.
+        </p>
+      )}
+
       <div className="flex justify-center gap-8 font-mono text-xs text-mute">
-        <div>
-          <div className="uppercase tracking-widest">Side A</div>
-          <div className="mt-1 text-sm font-semibold text-fg tabular-nums">
-            {sideA.totalProj.toFixed(1)} pts
+        {(
+          [
+            ["Side A", sideA],
+            ["Side B", sideB],
+          ] as const
+        ).map(([label, side]) => (
+          <div key={label}>
+            <div className="uppercase tracking-widest">{label}</div>
+            <div className="mt-1 text-sm font-semibold text-fg tabular-nums">
+              {Math.round(side.totalValue)} value
+            </div>
+            <div className="tabular-nums">{Math.round(side.totalProj)} pts</div>
+            <div className="tabular-nums">avg ADP {(side.avgAdp ?? 0).toFixed(1)}</div>
           </div>
-          <div className="tabular-nums">avg ADP {(sideA.avgAdp ?? 0).toFixed(1)}</div>
-        </div>
-        <div>
-          <div className="uppercase tracking-widest">Side B</div>
-          <div className="mt-1 text-sm font-semibold text-fg tabular-nums">
-            {sideB.totalProj.toFixed(1)} pts
-          </div>
-          <div className="tabular-nums">avg ADP {(sideB.avgAdp ?? 0).toFixed(1)}</div>
-        </div>
+        ))}
       </div>
     </div>
   );
