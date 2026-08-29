@@ -3,6 +3,8 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import { PLAYER_BY_ID } from "@/data/players";
 import { rankMap, sanitizeOrder, useRankings } from "@/lib/useRankings";
+import { nextUserPick, recommendPicks, type Recommendation } from "@/lib/recommend";
+import { tierLookup, useTiers } from "@/lib/useTiers";
 import { teamForPick, useDraft } from "@/lib/useDraft";
 import type { Player, PlayerTag, Position } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
@@ -236,12 +238,119 @@ function SidePanel({ userOnClock }: { userOnClock: boolean }) {
           </button>
         ))}
       </div>
+      <BestPicks userOnClock={userOnClock} />
       <div className="min-h-0 flex-1 overflow-y-auto p-2">
         {tab === "players" && <AvailableList userOnClock={userOnClock} />}
         {tab === "queue" && <QueuePanel userOnClock={userOnClock} />}
         {tab === "team" && <MyTeam />}
       </div>
     </div>
+  );
+}
+
+/** The picks worth making right now, and why. */
+function BestPicks({ userOnClock }: { userOnClock: boolean }) {
+  const order = useRankings((s) => s.order);
+  const boards = useTiers((s) => s.boards);
+  const picks = useDraft((s) => s.picks);
+  const config = useDraft((s) => s.config);
+  const userPick = useDraft((s) => s.userPick);
+  const user = config.slot - 1;
+
+  const picked = useMemo(
+    () => ({
+      drafted: new Set(picks.map((p) => p.playerId)),
+      roster: picks
+        .filter((p) => p.team === user)
+        .map((p) => PLAYER_BY_ID.get(p.playerId))
+        .filter((p): p is Player => !!p),
+    }),
+    [picks, user]
+  );
+
+  const suggestions = useMemo(() => {
+    const available = sanitizeOrder(order)
+      .map((id) => PLAYER_BY_ID.get(id))
+      .filter((p): p is Player => !!p && !picked.drafted.has(p.id));
+    return recommendPicks({
+      available,
+      roster: picked.roster,
+      ranks: rankMap(order),
+      tiers: tierLookup(boards),
+      overall: picks.length,
+      nextOverall: nextUserPick(
+        picks.length,
+        config.teams,
+        user,
+        config.teams * config.rounds
+      ),
+    });
+  }, [order, boards, picked, picks.length, config.teams, config.rounds, user]);
+
+  if (suggestions.length === 0) return null;
+
+  return (
+    <div className="border-b border-line px-2 py-2">
+      <div className="mb-1.5 flex items-center gap-2 px-1">
+        <span className="font-display text-xs font-bold uppercase tracking-[0.2em] text-accent">
+          Best picks now
+        </span>
+        <span className="h-px flex-1 bg-gradient-to-r from-accent/40 to-transparent" />
+      </div>
+      <ul className="space-y-1">
+        {suggestions.map((s, i) => (
+          <SuggestionRow
+            key={s.player.id}
+            suggestion={s}
+            best={i === 0}
+            onDraft={userOnClock ? () => userPick(s.player.id) : undefined}
+          />
+        ))}
+      </ul>
+    </div>
+  );
+}
+
+function SuggestionRow({
+  suggestion,
+  best,
+  onDraft,
+}: {
+  suggestion: Recommendation;
+  best: boolean;
+  onDraft?: () => void;
+}) {
+  const { player, reasons } = suggestion;
+  return (
+    <li
+      className={`rounded-lg border px-2 py-1.5 ${
+        best ? "border-accent/40 bg-accent/5" : "border-line bg-panel2/50"
+      }`}
+    >
+      <div className="flex items-center gap-2">
+        <span className="min-w-0 flex-1 truncate text-sm font-semibold">{player.name}</span>
+        <PositionBadge position={player.position} team={player.team} />
+        {onDraft && (
+          <button
+            type="button"
+            onClick={onDraft}
+            className="shrink-0 rounded-md bg-accent px-2.5 py-1 font-display text-xs font-bold text-ink transition-transform hover:brightness-110 active:scale-95"
+          >
+            DRAFT
+          </button>
+        )}
+      </div>
+      <ul className="mt-1 space-y-0.5">
+        {reasons.map((r) => (
+          <li
+            key={r.text}
+            className={`text-[11px] leading-snug ${r.weight < 0 ? "text-down" : "text-mute"}`}
+          >
+            {r.weight < 0 ? "▼" : "▲"} {r.text}
+          </li>
+        ))}
+      </ul>
+    </li>
   );
 }
 

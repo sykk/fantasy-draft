@@ -5,6 +5,7 @@ import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { aiSelect } from "@/lib/ai";
 import { remoteStorage } from "@/lib/remoteStorage";
 import { sanitizeOrder, useRankings } from "@/lib/useRankings";
+import { FLEX_POSITIONS, FLEX_SLOTS, STARTERS } from "@/lib/roster";
 import { pointsFor } from "@/lib/scoring";
 import { POSITIONS } from "@/lib/types";
 import type {
@@ -295,8 +296,8 @@ export function gradeFor(picks: DraftPick[], config: DraftConfig): DraftGrade {
 
 /**
  * Points for the best starting lineup among these players in this scoring
- * format: 1 QB, 2 RB, 2 WR, 1 TE, 1 FLEX (best remaining RB/WR/TE). A missing
- * position just contributes 0 for that slot — never throws.
+ * format, using the slots in lib/roster. A missing position just contributes 0
+ * for that slot — never throws.
  */
 export function startingLineupPoints(players: Player[], scoring: Scoring): number {
   const byPos: Record<Position, Player[]> = { QB: [], RB: [], WR: [], TE: [] };
@@ -305,17 +306,12 @@ export function startingLineupPoints(players: Player[], scoring: Scoring): numbe
     byPos[pos].sort((a, b) => pointsFor(b, scoring) - pointsFor(a, scoring));
   }
 
-  const starters: Player[] = [
-    ...byPos.QB.slice(0, 1),
-    ...byPos.RB.slice(0, 2),
-    ...byPos.WR.slice(0, 2),
-    ...byPos.TE.slice(0, 1),
-  ];
+  const starters = POSITIONS.flatMap((pos) => byPos[pos].slice(0, STARTERS[pos]));
 
-  const flexPool = [...byPos.RB.slice(2), ...byPos.WR.slice(2), ...byPos.TE.slice(1)].sort(
+  const flexPool = FLEX_POSITIONS.flatMap((pos) => byPos[pos].slice(STARTERS[pos])).sort(
     (a, b) => pointsFor(b, scoring) - pointsFor(a, scoring)
   );
-  starters.push(...flexPool.slice(0, 1));
+  starters.push(...flexPool.slice(0, FLEX_SLOTS));
 
   return starters.reduce((sum, p) => sum + pointsFor(p, scoring), 0);
 }
