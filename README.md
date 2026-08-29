@@ -5,10 +5,13 @@ Fantasy football draft prep app — build a big board, tier players, study real 
 ## Features
 
 - **Rankings** — drag-and-drop big board with per-position filters, tags, and scouting notes (persisted locally)
-- **Tier List** — S–F tier board with drag-and-drop
+- **Tier List** — S–F tier board with drag-and-drop, and an "apply to rankings" that re-sorts the big board by tier
 - **Stats** — real NFL regular-season stats (via Sleeper API) with a sortable/filterable table and per-player detail pages
-- **Mock Draft** — snake draft vs. AI with pick timer, pause/exit, and an optional strict-rankings mode (AI drafts your board exactly, no randomness)
+- **Vegas** — projected stats for the upcoming season, summed from Sleeper's weekly projections
+- **Mock Draft** — snake draft vs. AI with pick timer, pause/exit, an optional strict-rankings mode, and a pick assistant that explains the best picks available
+- **Simulations** — run 50–250 seeded drafts to see who reaches your picks, where the position runs land, and which slot drafts best
 - **Trade Analyzer** — build both sides of a hypothetical trade and compare projected points, with a fairness verdict
+- **League** — saved presets for team count, scoring, and the starting lineup (flex, superflex, bench), which every other screen reads from
 
 ## Getting started
 
@@ -18,6 +21,8 @@ npm run dev
 ```
 
 Open http://localhost:3000.
+
+Run the test suite with `npm test`.
 
 ## Refreshing stats data
 
