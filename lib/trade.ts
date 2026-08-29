@@ -1,5 +1,5 @@
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
-import { FLEX_POSITIONS, type RosterSlots } from "@/lib/roster";
+import { FLEX_POSITIONS, startingLineup, type RosterSlots } from "@/lib/roster";
 import { pointsFor } from "@/lib/scoring";
 import type { Player, Position, Scoring } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
@@ -158,5 +158,59 @@ export function evaluateTrade(
     edgePct,
     pointsMislead: bothSidesFilled && diff !== 0 && Math.sign(diff) !== Math.sign(pointsDiff),
     replacement,
+  };
+}
+
+export interface RosterImpact {
+  /** Starting-lineup points before and after the trade goes through. */
+  before: number;
+  after: number;
+  delta: number;
+  /** Players who start today but would not once the trade lands. */
+  starterOut: Player[];
+  /** Players who would break into the lineup. */
+  starterIn: Player[];
+  /** Players on the outgoing side that this roster does not actually hold. */
+  notOnRoster: Player[];
+}
+
+/**
+ * What the trade does to one team's starting lineup, which is the question
+ * league-wide value cannot answer: a third good tight end is worth plenty in
+ * the abstract and almost nothing to a roster that already starts two.
+ */
+export function rosterImpact(
+  roster: Player[],
+  gives: string[],
+  gets: string[],
+  league: TradeLeague
+): RosterImpact {
+  const held = new Set(roster.map((p) => p.id));
+  const giving = new Set(gives);
+
+  const incoming = gets
+    .map((id) => PLAYER_BY_ID.get(id))
+    .filter((p): p is Player => !!p && !held.has(p.id));
+
+  const after = [...roster.filter((p) => !giving.has(p.id)), ...incoming];
+
+  const lineupBefore = startingLineup(roster, league.scoring, league.slots);
+  const lineupAfter = startingLineup(after, league.scoring, league.slots);
+  const startingIds = (lineup: Player[]) => new Set(lineup.map((p) => p.id));
+  const wasStarting = startingIds(lineupBefore);
+  const willStart = startingIds(lineupAfter);
+
+  const total = (lineup: Player[]) =>
+    lineup.reduce((sum, p) => sum + pointsFor(p, league.scoring), 0);
+
+  return {
+    before: total(lineupBefore),
+    after: total(lineupAfter),
+    delta: total(lineupAfter) - total(lineupBefore),
+    starterOut: lineupBefore.filter((p) => !willStart.has(p.id)),
+    starterIn: lineupAfter.filter((p) => !wasStarting.has(p.id)),
+    notOnRoster: gives
+      .map((id) => PLAYER_BY_ID.get(id))
+      .filter((p): p is Player => !!p && !held.has(p.id)),
   };
 }

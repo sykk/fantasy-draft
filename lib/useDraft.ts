@@ -291,6 +291,15 @@ async function saveHistory(picks: DraftPick[], config: DraftConfig) {
   }
 }
 
+/** The players the user ended up with in a saved draft. */
+export function rosterOf(record: DraftRecord): Player[] {
+  const user = record.config.slot - 1;
+  return record.picks
+    .filter((pk) => pk.team === user)
+    .map((pk) => PLAYER_BY_ID.get(pk.playerId))
+    .filter((p): p is Player => !!p);
+}
+
 export interface DraftGrade {
   grade: string;
   totalProj: number;

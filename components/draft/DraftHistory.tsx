@@ -1,11 +1,10 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { PLAYER_BY_ID } from "@/data/players";
 import { pointsFor, SCORING_LABEL } from "@/lib/scoring";
 import { startingLineup } from "@/lib/roster";
 
-import { gradeFor, loadHistory, useDraft } from "@/lib/useDraft";
+import { gradeFor, loadHistory, rosterOf, useDraft } from "@/lib/useDraft";
 import { useMounted } from "@/lib/useMounted";
 import type { DraftRecord, Player, Position } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
@@ -173,14 +172,6 @@ function Comparison({ records }: { records: DraftRecord[] }) {
       </div>
     </div>
   );
-}
-
-function rosterOf(record: DraftRecord): Player[] {
-  const user = record.config.slot - 1;
-  return record.picks
-    .filter((pk) => pk.team === user)
-    .map((pk) => PLAYER_BY_ID.get(pk.playerId))
-    .filter((p): p is Player => !!p);
 }
 
 function positionCounts(players: Player[]): Record<Position, number> {

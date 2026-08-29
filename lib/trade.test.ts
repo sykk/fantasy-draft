@@ -2,7 +2,7 @@ import { describe, expect, test } from "vitest";
 import { PLAYERS } from "@/data/players";
 import { DEFAULT_SLOTS } from "@/lib/roster";
 import { pointsFor } from "@/lib/scoring";
-import { evaluateTrade, replacementLevels, type TradeLeague } from "@/lib/trade";
+import { evaluateTrade, replacementLevels, rosterImpact, type TradeLeague } from "@/lib/trade";
 import { POSITIONS } from "@/lib/types";
 import type { Position } from "@/lib/types";
 
@@ -153,5 +153,74 @@ describe("evaluateTrade", () => {
     const result = evaluateTrade([nth("RB", 20).id], [nth("RB", 0).id], LEAGUE);
     expect(result.diff).toBeCloseTo(result.sideB.totalValue - result.sideA.totalValue, 5);
     expect(result.winner).toBe("A");
+  });
+});
+
+describe("rosterImpact", () => {
+  // A middling team, so there is room both to improve and to get worse.
+  const starters = [
+    nth("QB", 5),
+    nth("RB", 8),
+    nth("RB", 9),
+    nth("WR", 8),
+    nth("WR", 9),
+    nth("TE", 5),
+    nth("WR", 10), // flex
+  ];
+  const bench = [nth("RB", 30), nth("WR", 35), nth("TE", 20)];
+  const roster = [...starters, ...bench];
+
+  test("an upgrade to a starting slot raises the lineup", () => {
+    const impact = rosterImpact(roster, [nth("RB", 9).id], [nth("RB", 0).id], LEAGUE);
+    expect(impact.delta).toBeGreaterThan(0);
+    expect(impact.after).toBeGreaterThan(impact.before);
+  });
+
+  test("trading a bench player away changes nothing", () => {
+    const impact = rosterImpact(roster, [nth("TE", 20).id], [], LEAGUE);
+    expect(impact.delta).toBe(0);
+    expect(impact.starterOut).toEqual([]);
+    expect(impact.starterIn).toEqual([]);
+  });
+
+  test("a third good tight end is worth little to a roster that already has one", () => {
+    // The same player the league values highly barely moves this lineup.
+    const spareTe = nth("TE", 1);
+    const leagueValue = evaluateTrade([spareTe.id], [], LEAGUE).sideA.totalValue;
+    const impact = rosterImpact(roster, [], [spareTe.id], LEAGUE);
+    expect(leagueValue).toBeGreaterThan(0);
+    expect(impact.delta).toBeLessThan(leagueValue);
+  });
+
+  test("names who enters and leaves the lineup", () => {
+    const incoming = nth("RB", 0);
+    const outgoing = nth("RB", 9);
+    const impact = rosterImpact(roster, [outgoing.id], [incoming.id], LEAGUE);
+    expect(impact.starterIn.map((p) => p.id)).toContain(incoming.id);
+    expect(impact.starterOut.map((p) => p.id)).toContain(outgoing.id);
+  });
+
+  test("giving away a starter with no replacement drops the lineup", () => {
+    const impact = rosterImpact(roster, [nth("QB", 5).id], [], LEAGUE);
+    expect(impact.delta).toBeLessThan(0);
+    expect(impact.starterOut.map((p) => p.id)).toContain(nth("QB", 5).id);
+  });
+
+  test("flags players the roster does not actually hold", () => {
+    const stranger = nth("RB", 50);
+    const impact = rosterImpact(roster, [stranger.id], [], LEAGUE);
+    expect(impact.notOnRoster.map((p) => p.id)).toEqual([stranger.id]);
+  });
+
+  test("receiving someone already rostered does not clone him", () => {
+    const own = nth("WR", 8);
+    const impact = rosterImpact(roster, [], [own.id], LEAGUE);
+    expect(impact.delta).toBe(0);
+  });
+
+  test("an empty roster has nothing to lose", () => {
+    const impact = rosterImpact([], [], [nth("RB", 0).id], LEAGUE);
+    expect(impact.before).toBe(0);
+    expect(impact.delta).toBeGreaterThan(0);
   });
 });
