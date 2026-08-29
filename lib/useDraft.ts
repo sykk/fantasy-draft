@@ -1,8 +1,10 @@
 "use client";
 
 import { create } from "zustand";
+import { persist, createJSONStorage } from "zustand/middleware";
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { aiSelect } from "@/lib/ai";
+import { localStore } from "@/lib/localStore";
 import { remoteStorage } from "@/lib/remoteStorage";
 import { sanitizeOrder, useRankings } from "@/lib/useRankings";
 import { DEFAULT_SLOTS, startingLineupPoints } from "@/lib/roster";
@@ -54,62 +56,72 @@ const DEFAULT_CONFIG: DraftConfig = {
   timerSec: 30,
 };
 
-export const useDraft = create<DraftState>()((set, get) => {
-  const draftedIds = () => new Set(get().picks.map((p) => p.playerId));
+/** A draft picked back up after a reload starts paused, so nobody loses a pick
+ *  to a clock they never saw running. */
+const RESUMED_PAUSED = {
+  paused: true,
+  deadline: null,
+  pausedRemaining: null,
+} as const;
 
-  const availableByAdp = (): Player[] => {
-    const gone = draftedIds();
-    return PLAYERS.filter((p) => !gone.has(p.id)); // PLAYERS is already ADP-sorted
-  };
+export const useDraft = create<DraftState>()(
+  persist(
+    (set, get) => {
+      const draftedIds = () => new Set(get().picks.map((p) => p.playerId));
 
-  const userTeamIndex = () => get().config.slot - 1;
+      const availableByAdp = (): Player[] => {
+        const gone = draftedIds();
+        return PLAYERS.filter((p) => !gone.has(p.id)); // PLAYERS is already ADP-sorted
+      };
 
-  const applyPick = (playerId: string) => {
-    const { picks, config } = get();
-    const overall = picks.length;
-    const pick: DraftPick = {
-      overall,
-      round: Math.floor(overall / config.teams),
-      team: teamForPick(overall, config.teams),
-      playerId,
-    };
-    const nextPicks = [...picks, pick];
-    const total = config.teams * config.rounds;
-    const done = nextPicks.length >= total;
-    const nextIsUser =
-      !done && teamForPick(nextPicks.length, config.teams) === userTeamIndex();
+      const userTeamIndex = () => get().config.slot - 1;
 
-    set({
-      picks: nextPicks,
-      phase: done ? "complete" : "drafting",
-      queue: get().queue.filter((id) => id !== playerId),
-      deadline: nextIsUser ? Date.now() + config.timerSec * 1000 : null,
-    });
-    if (done) saveHistory(nextPicks, config);
-  };
+      const applyPick = (playerId: string) => {
+        const { picks, config } = get();
+        const overall = picks.length;
+        const pick: DraftPick = {
+          overall,
+          round: Math.floor(overall / config.teams),
+          team: teamForPick(overall, config.teams),
+          playerId,
+        };
+        const nextPicks = [...picks, pick];
+        const total = config.teams * config.rounds;
+        const done = nextPicks.length >= total;
+        const nextIsUser =
+          !done && teamForPick(nextPicks.length, config.teams) === userTeamIndex();
 
-  return {
-    phase: "setup",
-    config: DEFAULT_CONFIG,
-    picks: [],
-    queue: [],
-    autoPick: false,
-    deadline: null,
-    paused: false,
-    pausedRemaining: null,
+        set({
+          picks: nextPicks,
+          phase: done ? "complete" : "drafting",
+          queue: get().queue.filter((id) => id !== playerId),
+          deadline: nextIsUser ? Date.now() + config.timerSec * 1000 : null,
+        });
+        if (done) saveHistory(nextPicks, config);
+      };
 
-    start: (config) => {
-      const firstIsUser = teamForPick(0, config.teams) === config.slot - 1;
-      set({
-        phase: "drafting",
-        config,
+      return {
+        phase: "setup",
+        config: DEFAULT_CONFIG,
         picks: [],
         queue: [],
         autoPick: false,
-        deadline: firstIsUser ? Date.now() + config.timerSec * 1000 : null,
+        deadline: null,
         paused: false,
         pausedRemaining: null,
-      });
+
+        start: (config) => {
+          const firstIsUser = teamForPick(0, config.teams) === config.slot - 1;
+          set({
+            phase: "drafting",
+            config,
+            picks: [],
+            queue: [],
+            autoPick: false,
+            deadline: firstIsUser ? Date.now() + config.timerSec * 1000 : null,
+            paused: false,
+            pausedRemaining: null,
+          });
     },
 
     replay: (record) =>
@@ -217,17 +229,40 @@ export const useDraft = create<DraftState>()((set, get) => {
 
     setAutoPick: (on) => set({ autoPick: on }),
 
-    reset: () =>
-      set({
-        phase: "setup",
-        picks: [],
-        queue: [],
-        deadline: null,
-        paused: false,
-        pausedRemaining: null,
+      reset: () =>
+        set({
+          phase: "setup",
+          picks: [],
+          queue: [],
+          deadline: null,
+          paused: false,
+          pausedRemaining: null,
+        }),
+      };
+    },
+    {
+      name: "draftlab-active-draft",
+      storage: createJSONStorage(() => localStore),
+      // The clock is deliberately left out: a deadline from before the reload
+      // is already in the past, and restoring it would auto-pick the moment
+      // the page came back.
+      partialize: (s) => ({
+        phase: s.phase,
+        config: s.config,
+        picks: s.picks,
+        queue: s.queue,
+        autoPick: s.autoPick,
       }),
-  };
-});
+      // merge, not onRehydrateStorage: local storage hydrates synchronously
+      // while create() is still running, so the store binding does not exist
+      // yet to be written to.
+      merge: (persisted, current) => {
+        const restored = { ...current, ...(persisted as Partial<DraftState>) };
+        return restored.phase === "drafting" ? { ...restored, ...RESUMED_PAUSED } : restored;
+      },
+    }
+  )
+);
 
 const HISTORY_KEY = "draftlab-history";
 const HISTORY_LIMIT = 20;
