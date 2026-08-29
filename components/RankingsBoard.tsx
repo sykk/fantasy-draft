@@ -19,6 +19,7 @@ import { CSS } from "@dnd-kit/utilities";
 import { restrictToVerticalAxis } from "@dnd-kit/modifiers";
 import { PLAYERS, PLAYER_BY_ID } from "@/data/players";
 import { rankMap, sanitizeOrder, useRankings } from "@/lib/useRankings";
+import { tierLookup, useTiers, type SlotKey } from "@/lib/useTiers";
 import { useMounted } from "@/lib/useMounted";
 import type { Player, Position } from "@/lib/types";
 import { PlayerRankRow } from "@/components/PlayerRankRow";
@@ -32,6 +33,7 @@ export function RankingsBoard() {
   const order = useRankings((s) => s.order);
   const move = useRankings((s) => s.move);
   const resetToAdp = useRankings((s) => s.resetToAdp);
+  const boards = useTiers((s) => s.boards);
 
   const [filter, setFilter] = useState<PosFilter>("ALL");
   const [query, setQuery] = useState("");
@@ -43,6 +45,7 @@ export function RankingsBoard() {
   );
 
   const ranks = useMemo(() => rankMap(order), [order]);
+  const tiers = useMemo(() => tierLookup(boards), [boards]);
 
   const visible = useMemo(() => {
     const q = query.trim().toLowerCase();
@@ -55,17 +58,20 @@ export function RankingsBoard() {
 
   // Tiers are position-scoped, so grouping only makes sense when a single
   // position is in view. Groups consecutive same-tier players so the
-  // stripe/header always spans a contiguous, honest block.
+  // stripe/header always spans a contiguous, honest block — a tier that the
+  // rankings order interleaves shows up as more than one block, which is the
+  // point: it tells the user their board and their tiers disagree.
   const tierGroups = useMemo(() => {
     if (filter === "ALL") return null;
-    const groups: { tier: number; players: Player[] }[] = [];
+    const groups: { tier: SlotKey; players: Player[] }[] = [];
     for (const p of visible) {
+      const tier = tiers.get(p.id) ?? "UNRANKED";
       const last = groups[groups.length - 1];
-      if (last && last.tier === p.tier) last.players.push(p);
-      else groups.push({ tier: p.tier, players: [p] });
+      if (last && last.tier === tier) last.players.push(p);
+      else groups.push({ tier, players: [p] });
     }
     return groups;
-  }, [visible, filter]);
+  }, [visible, filter, tiers]);
 
   function handleDragEnd(e: DragEndEvent) {
     const { active, over } = e;
@@ -126,13 +132,15 @@ export function RankingsBoard() {
                   >
                     <div className="flex items-center gap-2 pt-1">
                       <span className="font-mono text-xs font-semibold uppercase tracking-[0.25em] text-accent/80">
-                        {filter} · TIER {String(group.tier).padStart(2, "0")}
+                        {filter} ·{" "}
+                        {group.tier === "UNRANKED" ? "UNTIERED" : `TIER ${group.tier}`}
                       </span>
                       <span className="h-px flex-1 bg-gradient-to-r from-accent/40 via-line to-transparent" />
                     </div>
                     <PlayerList
                       players={group.players}
                       ranks={ranks}
+                      tiers={tiers}
                       expandedId={expandedId}
                       onToggle={toggleExpanded}
                     />
@@ -143,6 +151,7 @@ export function RankingsBoard() {
               <PlayerList
                 players={visible}
                 ranks={ranks}
+                tiers={tiers}
                 expandedId={expandedId}
                 onToggle={toggleExpanded}
               />
@@ -157,11 +166,13 @@ export function RankingsBoard() {
 function PlayerList({
   players,
   ranks,
+  tiers,
   expandedId,
   onToggle,
 }: {
   players: Player[];
   ranks: Map<string, number>;
+  tiers: Map<string, SlotKey>;
   expandedId: string | null;
   onToggle: (id: string) => void;
 }) {
@@ -173,6 +184,7 @@ function PlayerList({
             <SortableRow
               player={p}
               rank={ranks.get(p.id) ?? p.adp}
+              tier={tiers.get(p.id) ?? "UNRANKED"}
               onToggle={() => onToggle(p.id)}
             />
           </li>,
@@ -193,10 +205,12 @@ function PlayerList({
 function SortableRow({
   player,
   rank,
+  tier,
   onToggle,
 }: {
   player: Player;
   rank: number;
+  tier: SlotKey;
   onToggle: () => void;
 }) {
   const { attributes, listeners, setNodeRef, transform, transition, isDragging } =
@@ -213,7 +227,7 @@ function SortableRow({
         isDragging ? "relative z-10 opacity-90" : ""
       }`}
     >
-      <PlayerRankRow player={player} rank={rank} delta={player.adp - rank} />
+      <PlayerRankRow player={player} rank={rank} delta={player.adp - rank} tier={tier} />
     </div>
   );
 }

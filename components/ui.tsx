@@ -1,3 +1,4 @@
+import type { SlotKey } from "@/lib/useTiers";
 import type { PlayerTag, Position } from "@/lib/types";
 
 export const POS_TEXT: Record<Position, string> = {
@@ -20,6 +21,30 @@ export const POS_BORDER: Record<Position, string> = {
   WR: "border-wr",
   TE: "border-te",
 };
+
+// classic tiermaker label colors: S gold/red -> F grey (desaturated for the dark HUD palette)
+export const TIER_STYLE: Record<SlotKey, { bg: string; label: string }> = {
+  S: { bg: "#c85160", label: "S" },
+  A: { bg: "#cf8049", label: "A" },
+  B: { bg: "#c4ab52", label: "B" },
+  C: { bg: "#57a56c", label: "C" },
+  D: { bg: "#5083b8", label: "D" },
+  F: { bg: "#646d80", label: "F" },
+  UNRANKED: { bg: "#262d42", label: "?" },
+};
+
+export function TierBadge({ tier }: { tier: SlotKey }) {
+  const { bg, label } = TIER_STYLE[tier];
+  return (
+    <span
+      className="inline-flex h-5 w-5 shrink-0 items-center justify-center rounded font-display text-[11px] font-bold text-ink"
+      style={{ backgroundColor: bg }}
+      title={tier === "UNRANKED" ? "Not tiered yet" : `Your tier: ${tier}`}
+    >
+      {label}
+    </span>
+  );
+}
 
 export function PositionBadge({ position, team }: { position: Position; team: string }) {
   return (

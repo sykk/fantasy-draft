@@ -19,23 +19,20 @@ import {
 import { SortableContext, rectSortingStrategy, useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
 import { PLAYER_BY_ID } from "@/data/players";
-import { useTiers, sanitizeBoard, SLOT_KEYS, TIER_KEYS, type SlotKey } from "@/lib/useTiers";
+import {
+  useTiers,
+  orderFromTiers,
+  sanitizeBoard,
+  SLOT_KEYS,
+  TIER_KEYS,
+  type SlotKey,
+} from "@/lib/useTiers";
+import { sanitizeOrder, useRankings } from "@/lib/useRankings";
 import { useMounted } from "@/lib/useMounted";
 import type { Player, Position } from "@/lib/types";
 import { POSITIONS } from "@/lib/types";
-import { POS_BORDER, POS_TEXT } from "@/components/ui";
+import { POS_BORDER, POS_TEXT, TIER_STYLE } from "@/components/ui";
 import { PlayerDetailCard } from "@/components/PlayerDetailCard";
-
-// classic tiermaker label colors: S gold/red → F grey (desaturated for the dark HUD palette)
-const TIER_STYLE: Record<SlotKey, { bg: string; label: string }> = {
-  S: { bg: "#c85160", label: "S" },
-  A: { bg: "#cf8049", label: "A" },
-  B: { bg: "#c4ab52", label: "B" },
-  C: { bg: "#57a56c", label: "C" },
-  D: { bg: "#5083b8", label: "D" },
-  F: { bg: "#646d80", label: "F" },
-  UNRANKED: { bg: "#262d42", label: "?" },
-};
 
 // Row ids are the slot keys themselves; player slugs are lowercase so they
 // can never collide with "S"…"F"/"UNRANKED".
@@ -48,10 +45,12 @@ export function TierBoard() {
   const mounted = useMounted();
 
   const [pos, setPos] = useState<Position>("RB");
-  const rawBoard = useTiers((s) => s.boards[pos]);
+  const boards = useTiers((s) => s.boards);
+  const rawBoard = boards[pos];
   const move = useTiers((s) => s.move);
   const resetToDefaults = useTiers((s) => s.resetToDefaults);
   const clearTiers = useTiers((s) => s.clearTiers);
+  const setOrder = useRankings((s) => s.setOrder);
 
   const board = useMemo(() => sanitizeBoard(rawBoard, pos), [rawBoard, pos]);
 
@@ -133,6 +132,22 @@ export function TierBoard() {
           ))}
         </div>
         <div className="flex gap-1.5">
+          <button
+            type="button"
+            onClick={() => {
+              if (
+                confirm(
+                  "Re-sort your rankings board so every tier sits above the next? " +
+                    "Players keep their order within a tier."
+                )
+              ) {
+                setOrder(orderFromTiers(boards, sanitizeOrder(useRankings.getState().order)));
+              }
+            }}
+            className="rounded-full border border-line px-3 py-1.5 text-sm text-mute transition-colors hover:border-accent hover:text-accent"
+          >
+            Apply to rankings
+          </button>
           <button
             type="button"
             onClick={() => {

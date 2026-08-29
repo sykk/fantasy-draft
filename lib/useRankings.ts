@@ -13,6 +13,7 @@ interface RankingsState {
   tags: Record<string, PlayerTag[]>;
   notes: Record<string, string>;
   move: (activeId: string, overId: string) => void;
+  setOrder: (order: string[]) => void;
   toggleTag: (playerId: string, tag: PlayerTag) => void;
   setNote: (playerId: string, note: string) => void;
   resetToAdp: () => void;
@@ -34,6 +35,7 @@ export const useRankings = create<RankingsState>()(
           next.splice(to, 0, ...next.splice(from, 1));
           return { order: next };
         }),
+      setOrder: (order) => set({ order: sanitizeOrder(order) }),
       toggleTag: (playerId, tag) =>
         set((s) => {
           const current = s.tags[playerId] ?? [];

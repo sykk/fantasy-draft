@@ -3,16 +3,19 @@
 import { pointsFor } from "@/lib/scoring";
 import { useLeague } from "@/lib/useLeague";
 import type { Player } from "@/lib/types";
-import { DeltaBadge, PositionBadge } from "@/components/ui";
+import type { SlotKey } from "@/lib/useTiers";
+import { DeltaBadge, PositionBadge, TierBadge } from "@/components/ui";
 
 export function PlayerRankRow({
   player,
   rank,
   delta = 0,
+  tier,
 }: {
   player: Player;
   rank: number;
   delta?: number;
+  tier?: SlotKey;
 }) {
   const scoring = useLeague((s) => s.scoring);
   return (
@@ -22,6 +25,7 @@ export function PlayerRankRow({
       </span>
       <span className="min-w-0 flex-1 truncate text-sm font-semibold">{player.name}</span>
       <PositionBadge position={player.position} team={player.team} />
+      {tier && <TierBadge tier={tier} />}
       <DeltaBadge delta={delta} />
       <span className="shrink-0 font-mono text-sm font-bold tabular-nums">
         {Math.round(pointsFor(player, scoring))}
